@@ -1,0 +1,8 @@
+edition = "2021"
+indent_style = "Block"
+hard_tabs = false
+tab_spaces = 2
+empty_item_single_line = false
+max_width = 130
+chain_width = 70
+use_small_heuristics = "Max"

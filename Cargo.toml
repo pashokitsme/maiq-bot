@@ -1,0 +1,22 @@
+[package]
+name = "maiq-bot"
+authors = ["pashokitsme <pashamail79@gmail.com>"]
+repository = "https://github.com/pashokitsme/maiq-bot"
+license = "MPL-2.0"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"
+
+[dependencies]
+chrono = { version = "0.4.23", features = ["serde"] }
+dotenvy = "0.15.6"
+log = "0.4.17"
+pretty_env_logger = "0.4.0"
+rocksdb = { version = "0.19.0", features = ["serde"] }
+teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros", "rocksdb-storage", "rocksdb"] }
+thiserror = "1.0.38"
+tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
