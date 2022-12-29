@@ -33,12 +33,12 @@ impl From<reqwest::Error> for ApiError {
 }
 
 pub async fn get_latest_today() -> Result<Snapshot, ApiError> {
-  info!("{}", TODAY_URL.as_str());
-  get(TODAY_URL.as_str()).await
+  info!("{}", *TODAY_URL);
+  get(&*TODAY_URL).await
 }
 
 pub async fn get_latest_next() -> Result<Snapshot, ApiError> {
-  get(NEXT_URL.as_str()).await
+  get(&*NEXT_URL).await
 }
 
 pub async fn get_snapshot<'a>(uid: &'a str) -> Result<Snapshot, ApiError> {
@@ -46,7 +46,7 @@ pub async fn get_snapshot<'a>(uid: &'a str) -> Result<Snapshot, ApiError> {
 }
 
 pub async fn poll() -> Result<Poll, ApiError> {
-  get(POLL_URL.as_str()).await
+  get(&*POLL_URL).await
 }
 
 async fn get<T: AsRef<str>, O: DeserializeOwned>(url: T) -> Result<O, ApiError> {
