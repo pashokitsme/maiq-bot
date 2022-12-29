@@ -3,6 +3,7 @@ use std::str::FromStr;
 type ENV = &'static str;
 
 pub const TELOXIDE_TOKEN: ENV = "TELOXIDE_TOKEN";
+pub const API_HOST: ENV = "API_HOST";
 
 pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
   dotenvy::var(var).ok().and_then(|x| x.parse().ok())
@@ -20,6 +21,7 @@ pub fn check_env_vars() {
   let mut failed = false;
 
   failed |= !check::<String>(TELOXIDE_TOKEN);
+  failed |= !check::<String>(API_HOST);
 
   failed.then(|| {
     error!("Not all .env args are set");
