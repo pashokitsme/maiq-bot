@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use chrono::{DateTime, Utc};
 use maiq_structs::Snapshot;
 use reqwest::StatusCode;
@@ -41,8 +43,8 @@ pub async fn get_latest_next() -> Result<Snapshot, ApiError> {
   get(&*NEXT_URL).await
 }
 
-pub async fn get_snapshot<'a>(uid: &'a str) -> Result<Snapshot, ApiError> {
-  get(format!("{}/snapshot/{}", *API_HOST, uid)).await
+pub async fn get_snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
+  get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
 }
 
 pub async fn poll() -> Result<Poll, ApiError> {

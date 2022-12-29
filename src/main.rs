@@ -1,3 +1,5 @@
+use teloxide::Bot;
+
 #[macro_use]
 extern crate log;
 
@@ -5,11 +7,15 @@ extern crate log;
 extern crate lazy_static;
 
 mod api;
+mod bot;
 mod env;
+mod error;
 
 #[tokio::main]
 async fn main() {
   init();
+  let bot = Bot::from_env();
+  bot::start(bot).await
 }
 
 fn init() {
