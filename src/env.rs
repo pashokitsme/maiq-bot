@@ -1,12 +1,25 @@
 use std::str::FromStr;
 
-type ENV = &'static str;
+macro_rules! env_var {
+  ($var_name: ident, $env_name: literal) => {
+    pub const $var_name: &'static str = $env_name;
+  };
+  ($var_name: ident) => {
+    pub const $var_name: &'static str = stringify!($var_name);
+  };
+}
 
-pub const TELOXIDE_TOKEN: ENV = "TELOXIDE_TOKEN";
-pub const API_HOST: ENV = "API_HOST";
+env_var!(TELOXIDE_TOKEN);
+env_var!(API_HOST);
+env_var!(DB_URL, "DATABASE_CONNECTION_URL");
+env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");
 
 pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
-  dotenvy::var(var).ok().and_then(|x| x.parse().ok())
+  self::var(var).and_then(|x| x.parse().ok())
+}
+
+pub fn var(var: &'static str) -> Option<String> {
+  dotenvy::var(var).ok()
 }
 
 pub fn check<T: FromStr>(var: &'static str) -> bool {
