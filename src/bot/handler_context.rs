@@ -11,6 +11,7 @@ use super::Command;
 
 pub type Ok = Result<(), TeloxideError>;
 
+// todo: make it injectable
 pub struct HContext {
   pub bot: Bot,
   pub msg: Message,

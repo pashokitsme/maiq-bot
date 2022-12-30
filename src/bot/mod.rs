@@ -1,5 +1,6 @@
 use teloxide::{
-  dispatching::{HandlerExt, UpdateFilterExt},
+  dispatching::{dialogue::InMemStorage, HandlerExt, UpdateFilterExt},
+  dptree as dp,
   macros::BotCommands,
   prelude::Dispatcher,
   requests::Requester,
@@ -8,10 +9,11 @@ use teloxide::{
   Bot,
 };
 
-use crate::error::TeloxideError;
+use crate::{bot::dialogues::setup_settings, error::TeloxideError};
 
 use self::handler_context::HContext;
 
+mod dialogues;
 mod handler_context;
 
 #[derive(BotCommands, Clone, Debug)]
@@ -30,9 +32,12 @@ pub async fn start(bot: Bot) {
 
   let msg_handler = Update::filter_message()
     .filter_command::<Command>()
-    .endpoint(command_handler);
+    .branch(dp::case![Command::Start])
+    .chain(setup_settings::build())
+    .branch(dp::endpoint(command_handler));
 
   Dispatcher::builder(bot, msg_handler)
+    .dependencies(dp::deps![InMemStorage::<setup_settings::State>::new()])
     .enable_ctrlc_handler()
     .build()
     .dispatch()
