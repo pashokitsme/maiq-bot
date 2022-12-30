@@ -2,24 +2,32 @@ use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt},
   macros::BotCommands,
   prelude::Dispatcher,
+  requests::Requester,
   types::{Message, Update},
+  utils::command::BotCommands as _,
   Bot,
 };
 
 use crate::error::TeloxideError;
 
-use self::context::HContext;
+use self::handler_context::HContext;
 
-mod context;
-pub mod start;
+mod handler_context;
 
 #[derive(BotCommands, Clone, Debug)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
+  #[command(description = "start!")]
   Start,
 }
 
 pub async fn start(bot: Bot) {
+  info!("Starting up!");
+  bot
+    .set_my_commands(Command::bot_commands())
+    .await
+    .expect("Couldn't set bot commands");
+
   let msg_handler = Update::filter_message()
     .filter_command::<Command>()
     .endpoint(command_handler);
@@ -32,7 +40,9 @@ pub async fn start(bot: Bot) {
 }
 
 async fn command_handler(bot: Bot, msg: Message, cmd: Command) -> Result<(), TeloxideError> {
-  let ctx = HContext::new(&bot, &msg, cmd);
-  ctx.say_hi().await?;
+  let ctx = HContext::new(bot, msg, cmd);
+  match ctx.used_command {
+    Command::Start => ctx.say_hi().await?,
+  }
   Ok(())
 }

@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use teloxide::{
   requests::Requester,
   types::{ChatId, Message, User},
@@ -10,16 +11,24 @@ use super::Command;
 
 pub type Ok = Result<(), TeloxideError>;
 
-pub struct HContext<'c> {
-  pub bot: &'c Bot,
-  pub msg: &'c Message,
-  pub user: &'c User,
+pub struct HContext {
+  pub bot: Bot,
+  pub msg: Message,
+  pub user: User,
   pub used_command: Command,
 }
 
-impl<'c> HContext<'c> {
-  pub fn new(bot: &'c Bot, msg: &'c Message, cmd: Command) -> Self {
-    Self { bot, msg, user: msg.from().unwrap(), used_command: cmd }
+impl Deref for HContext {
+  type Target = Bot;
+
+  fn deref(&self) -> &Self::Target {
+    &self.bot
+  }
+}
+
+impl HContext {
+  pub fn new(bot: Bot, msg: Message, cmd: Command) -> Self {
+    Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd }
   }
 
   pub fn chat_id(&self) -> ChatId {
