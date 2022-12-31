@@ -1,5 +1,9 @@
-use crate::models::User;
-use mongodb::{bson::doc, options::ClientOptions, Collection};
+use mongodb::{
+  bson::{doc, DateTime},
+  options::ClientOptions,
+  Collection,
+};
+use serde::{Deserialize, Serialize};
 use teloxide::types::UserId;
 
 use crate::env;
@@ -16,24 +20,50 @@ pub async fn init() -> Result<Mongo, MongoError> {
   Mongo::with_options(opts)
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct User {
+  pub id: i64,
+  pub group: Option<String>,
+  pub is_notifications_enabled: bool,
+  pub joined: DateTime,
+}
+
+impl User {
+  pub fn new(id: UserId) -> Self {
+    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::now(), group: None }
+  }
+}
+
 pub async fn get_user(db: &Mongo, id: i64) -> Result<Option<User>, MongoError> {
   Ok(get_users(&db).find_one(doc! { "id": id }, None).await?)
 }
 
-pub async fn update_user(db: &Mongo, user: &User) -> Result<Option<User>, MongoError> {
+pub async fn get_or_create_user(db: &Mongo, id: i64) -> Result<User, MongoError> {
   let users = get_users(&db);
-  Ok(users.find_one_and_replace(doc! { "id": user.id}, user, None).await?)
+  match users.find_one(doc! { "id": id }, None).await? {
+    Some(user) => return Ok(user),
+    None => return Ok(new_user(&db, id).await?),
+  }
 }
 
-pub async fn new_user(db: &Mongo, id: i64) -> Result<(), MongoError> {
+pub async fn update_user(db: &Mongo, user: &User) -> Result<Option<User>, MongoError> {
+  Ok(
+    get_users(&db)
+      .find_one_and_replace(doc! { "id": user.id}, user, None)
+      .await?,
+  )
+}
+
+pub async fn new_user(db: &Mongo, id: i64) -> Result<User, MongoError> {
   let users = get_users(&db);
-  if get_user(&db, id).await?.is_some() {
+  if let Some(user) = get_user(&db, id).await? {
     warn!("Tryed to insert new user but user with id {} already exists", id);
-    return Ok(());
+    return Ok(user);
   }
   let user = User::new(UserId(id as u64));
-  users.insert_one(user, None).await?;
-  Ok(())
+  info!("New user with id {}", user.id);
+  users.insert_one(&user, None).await?;
+  Ok(user)
 }
 
 fn get_users(db: &Mongo) -> Collection<User> {

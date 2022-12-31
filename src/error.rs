@@ -1,12 +1,15 @@
 use teloxide::dispatching::dialogue::InMemStorageError;
 use thiserror::Error;
 
-use crate::api;
+use crate::{api, db::MongoError};
 
 #[derive(Error, Debug)]
 pub enum TeloxideError {
   #[error("Ошибка: API: {0}. {1}.")]
   ApiError(String, String),
+
+  #[error("Ошибка: Mongo: {0}")]
+  MongoError(MongoError),
 
   #[error("Ошибка: TeloxideAPI: {0}")]
   TeloxideApiError(teloxide::ApiError),
@@ -39,5 +42,11 @@ impl From<teloxide::RequestError> for TeloxideError {
 impl From<InMemStorageError> for TeloxideError {
   fn from(err: InMemStorageError) -> Self {
     Self::TeloxideInMemStorageError(err)
+  }
+}
+
+impl From<MongoError> for TeloxideError {
+  fn from(err: MongoError) -> Self {
+    Self::MongoError(err)
   }
 }

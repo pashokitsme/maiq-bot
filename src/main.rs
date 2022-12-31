@@ -11,7 +11,6 @@ mod bot;
 mod db;
 mod env;
 mod error;
-mod models;
 
 #[tokio::main]
 async fn main() {

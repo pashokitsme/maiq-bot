@@ -8,7 +8,11 @@ use teloxide::{
 };
 
 use super::Command;
-use crate::{bot::TeloxideResult, db::Mongo, error::TeloxideError};
+use crate::{
+  bot::TeloxideResult,
+  db::{self, Mongo},
+  error::TeloxideError,
+};
 
 // todo: make it injectable
 /// M`essage` handler context
@@ -41,6 +45,14 @@ impl MContext {
     Ok(self.bot.send_message(self.chat_id(), text).await?)
   }
 
+  pub async fn start_command(&self) -> TeloxideResult {
+    _ = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
+    self
+      .reply("Привет. Это бета.\nТебе нужно установить свою группу при помощи команды /set_group [группа]")
+      .await?;
+    Ok(())
+  }
+
   pub async fn send_about(&self) -> TeloxideResult {
     macro_rules! buttons_column {
       ($(($name: literal, $url: literal)),*) => {
@@ -59,10 +71,37 @@ impl MContext {
   }
 
   pub async fn toggle_notifications(&self) -> TeloxideResult {
+    let mut user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
+    user.is_notifications_enabled = !user.is_notifications_enabled;
+    db::update_user(&self.mongo, &user).await?;
+    self.reply(format!("{}", user.is_notifications_enabled)).await?;
     Ok(())
   }
 
   pub async fn set_group(&self, group: &String) -> TeloxideResult {
+    if group.is_empty() {
+      self
+        .reply("Ты должен передать название группы в аргумент команды")
+        .await?;
+      return Ok(());
+    }
+
+    if group.len() > 6 {
+      self
+        .reply(format!("Ты уверен, что именно `{}`? По моему, слишком длинное название.", group))
+        .await?;
+      return Ok(());
+    }
+
+    let mut user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
+    user.group = Some(group.clone());
+    db::update_user(&self.mongo, &user).await?;
+    if user.group.is_none() {
+      self.toggle_notifications().await?;
+    }
+    self
+      .reply(format!("Теперь твоя группа: {}", user.group.unwrap()))
+      .await?;
     Ok(())
   }
 
