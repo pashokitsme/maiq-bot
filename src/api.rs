@@ -35,19 +35,22 @@ impl From<reqwest::Error> for ApiError {
 }
 
 pub async fn get_latest_today() -> Result<Snapshot, ApiError> {
-  info!("{}", *TODAY_URL);
+  info!("Get today timetable");
   get(&*TODAY_URL).await
 }
 
 pub async fn get_latest_next() -> Result<Snapshot, ApiError> {
+  info!("Get next timetable");
   get(&*NEXT_URL).await
 }
 
 pub async fn get_snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
+  info!("Get snapshot {}", uid.as_ref());
   get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
 }
 
 pub async fn poll() -> Result<Poll, ApiError> {
+  info!("Polling..");
   get(&*POLL_URL).await
 }
 
