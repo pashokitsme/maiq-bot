@@ -12,16 +12,18 @@ lto = true
 opt-level = "s"
 
 [dependencies]
+async-trait = "0.1.60"
 chrono = { version = "0.4.23", features = ["serde"] }
 dotenvy = "0.15.6"
 lazy_static = "1.4.0"
 log = "0.4.17"
 maiq-structs = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.1.0" }
+mongodb = "2.3.1"
 pretty_env_logger = "0.4.0"
 reqwest = { version = "0.11.13", features = ["json"] }
-rocksdb = { version = "0.19.0", features = ["serde"] }
 serde = { version = "1.0.152", features = ["serde_derive"] }
 serde_json = "1.0.91"
 teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros", "rocksdb-storage", "rocksdb"] }
 thiserror = "1.0.38"
 tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
+trait_enum = "0.5.0"

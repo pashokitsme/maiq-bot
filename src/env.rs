@@ -35,6 +35,8 @@ pub fn check_env_vars() {
 
   failed |= !check::<String>(TELOXIDE_TOKEN);
   failed |= !check::<String>(API_HOST);
+  failed |= !check::<String>(DB_URL);
+  failed |= !check::<String>(DEFAULT_DB);
 
   failed.then(|| {
     error!("Not all .env args are set");
