@@ -21,24 +21,24 @@ pub async fn init() -> Result<Mongo, MongoError> {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct User {
+pub struct UserSettings {
   pub id: i64,
   pub group: Option<String>,
   pub is_notifications_enabled: bool,
   pub joined: DateTime,
 }
 
-impl User {
+impl UserSettings {
   pub fn new(id: UserId) -> Self {
     Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::now(), group: None }
   }
 }
 
-pub async fn get_user(db: &Mongo, id: i64) -> Result<Option<User>, MongoError> {
+pub async fn get_user(db: &Mongo, id: i64) -> Result<Option<UserSettings>, MongoError> {
   Ok(get_users(&db).find_one(doc! { "id": id }, None).await?)
 }
 
-pub async fn get_or_create_user(db: &Mongo, id: i64) -> Result<User, MongoError> {
+pub async fn get_or_create_user(db: &Mongo, id: i64) -> Result<UserSettings, MongoError> {
   let users = get_users(&db);
   match users.find_one(doc! { "id": id }, None).await? {
     Some(user) => return Ok(user),
@@ -46,7 +46,7 @@ pub async fn get_or_create_user(db: &Mongo, id: i64) -> Result<User, MongoError>
   }
 }
 
-pub async fn update_user(db: &Mongo, user: &User) -> Result<Option<User>, MongoError> {
+pub async fn update_user(db: &Mongo, user: &UserSettings) -> Result<Option<UserSettings>, MongoError> {
   Ok(
     get_users(&db)
       .find_one_and_replace(doc! { "id": user.id}, user, None)
@@ -54,18 +54,18 @@ pub async fn update_user(db: &Mongo, user: &User) -> Result<Option<User>, MongoE
   )
 }
 
-pub async fn new_user(db: &Mongo, id: i64) -> Result<User, MongoError> {
+pub async fn new_user(db: &Mongo, id: i64) -> Result<UserSettings, MongoError> {
   let users = get_users(&db);
   if let Some(user) = get_user(&db, id).await? {
-    warn!("Tryed to insert new user but user with id {} already exists", id);
+    warn!("Tried to insert new user but user with id {} already exists", id);
     return Ok(user);
   }
-  let user = User::new(UserId(id as u64));
+  let user = UserSettings::new(UserId(id as u64));
   info!("New user with id {}", user.id);
   users.insert_one(&user, None).await?;
   Ok(user)
 }
 
-fn get_users(db: &Mongo) -> Collection<User> {
+fn get_users(db: &Mongo) -> Collection<UserSettings> {
   db.default_database().unwrap().collection("users")
 }

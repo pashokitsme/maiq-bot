@@ -1,4 +1,3 @@
-use maiq_structs::{Group, Snapshot};
 use reqwest::Url;
 use std::ops::Deref;
 use teloxide::{
@@ -10,11 +9,9 @@ use teloxide::{
 
 use super::Command;
 use crate::{
-  api,
-  bot::TeloxideResult,
+  bot::BotResult,
   db::{self, Mongo},
-  error::TeloxideError,
-  utils,
+  error::BotError,
 };
 
 // todo: make it injectable
@@ -25,6 +22,7 @@ pub struct MContext {
   pub user: User,
   pub used_command: Command,
   pub mongo: Mongo,
+  user_settings: Option<db::UserSettings>,
 }
 
 impl Deref for MContext {
@@ -37,37 +35,39 @@ impl Deref for MContext {
 
 impl MContext {
   pub fn new(bot: Bot, msg: Message, cmd: Command, mongo: Mongo) -> Self {
-    Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo }
+    Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo, user_settings: None }
   }
 
   pub fn chat_id(&self) -> ChatId {
     self.msg.chat.id
   }
 
-  #[allow(deprecated)]
-  pub async fn reply<T: Into<String>>(&self, text: T) -> Result<Message, TeloxideError> {
+  pub async fn reply<T: Into<String>>(&self, text: T) -> Result<Message, BotError> {
     Ok(
       self
         .bot
         .send_message(self.chat_id(), text)
-        .parse_mode(ParseMode::Markdown)
+        .parse_mode(ParseMode::Html)
         .await?,
     )
   }
 
-  pub async fn send_timetable(snapshot: &Snapshot) -> TeloxideResult {
-    unimplemented!()
+  pub async fn settings<'u>(&'u mut self) -> Result<&'u db::UserSettings, BotError> {
+    if let None = self.user_settings {
+      self.user_settings = Some(db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?);
+    }
+    Ok(&self.user_settings.as_ref().unwrap())
   }
 
-  pub async fn start_command(&self) -> TeloxideResult {
+  pub async fn start_n_init(&self) -> BotResult {
     _ = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
     self
-      .reply("Привет. Это бета.\nТебе нужно установить свою группу при помощи команды /set_group [группа]")
+      .reply("Привет. Это бета.\nТебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>")
       .await?;
     Ok(())
   }
 
-  pub async fn send_about(&self) -> TeloxideResult {
+  pub async fn reply_about(&self) -> BotResult {
     macro_rules! buttons_column {
       ($(($name: literal, $url: literal)),*) => {
         vec![$(vec![InlineKeyboardButton::url($name, Url::parse($url).unwrap()); 1]),*]
@@ -84,7 +84,7 @@ impl MContext {
     Ok(())
   }
 
-  pub async fn toggle_notifications(&self) -> TeloxideResult {
+  pub async fn toggle_notifications(&self) -> BotResult {
     let mut user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
     user.is_notifications_enabled = !user.is_notifications_enabled;
     db::update_user(&self.mongo, &user).await?;
@@ -92,21 +92,10 @@ impl MContext {
     Ok(())
   }
 
-  pub async fn set_group(&self, group: &String) -> TeloxideResult {
-    if group.is_empty() {
-      self
-        .reply("Ты должен передать название группы в аргумент команды")
-        .await?;
-      return Ok(());
+  pub async fn set_group(&self, group: &String) -> BotResult {
+    if group.is_empty() || group.len() > 10 {
+      return Err(BotError::InvalidCommandUsage("<code>/set_group [группа: str, длина < 10]</code>".into()));
     }
-
-    if group.len() > 6 {
-      self
-        .reply(format!("Ты уверен, что именно <code>{}</code>? По моему, слишком длинное название.", group))
-        .await?;
-      return Ok(());
-    }
-
     let mut user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
     user.group = Some(group.clone());
     db::update_user(&self.mongo, &user).await?;
@@ -114,50 +103,8 @@ impl MContext {
       self.toggle_notifications().await?;
     }
     self
-      .reply(format!("Теперь твоя группа: {}", user.group.unwrap()))
+      .reply(format!("Теперь твоя группа: <code>{}</code>", user.group.unwrap()))
       .await?;
-    Ok(())
-  }
-
-  // todo: await db & api requests in same time
-  pub async fn update(&self) -> TeloxideResult {
-    let user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
-    if user.group.is_none() {
-      self.reply("Ты не установил группу").await?;
-      return Ok(());
-    }
-    let group = user.group.unwrap();
-
-    let today = api::get_latest_today().await;
-    let next = api::get_latest_next().await;
-    if today.is_err() && next.is_err() {
-      self.reply("У меня нет расписания ни на сегодня, ни на завтра. Может, стоит посмотреть на [сайте](http://chemk.org/index.php/raspisanie>)?").await?;
-      return Ok(());
-    }
-    let mut message = String::new();
-
-    if let Ok(today) = today {
-      if let Some(today) = today.groups.iter().find(|g| g.name == group) {
-        message.push_str("<b>Расписание на сегодня</b>\n");
-        today
-          .lessons
-          .iter()
-          .for_each(|l| message.push_str(utils::display_lesson(&l).as_str()));
-        message.push('\n');
-      }
-    }
-
-    if let Ok(next) = next {
-      if let Some(next) = next.groups.iter().find(|g| g.name == group) {
-        message.push_str("<b>Расписание на следующий день</b>\n");
-        next
-          .lessons
-          .iter()
-          .for_each(|l| message.push_str(utils::display_lesson(&l).as_str()))
-      }
-    }
-
-    self.reply(message).await?;
     Ok(())
   }
 }
