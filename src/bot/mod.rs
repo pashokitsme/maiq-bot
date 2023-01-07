@@ -73,6 +73,8 @@ pub async fn start(bot: Bot, mongo: Mongo) {
         .endpoint(dev_command_handler),
     );
 
+  let me = bot.get_me().await.expect("Login error");
+  info!("Logged in as {} [@{}]", me.full_name(), me.username());
   info!("Started");
   Dispatcher::builder(bot, handler)
     .dependencies(dp::deps![mongo])
@@ -83,6 +85,7 @@ pub async fn start(bot: Bot, mongo: Mongo) {
 }
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: Mongo) -> BotResult {
+  info!("Command {:?} from {} [{}]", cmd, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);
   let mut ctx = MContext::new(bot, msg, cmd, mongo);
   if let Err(err) = try_execute_command(&mut ctx).await {
     ctx.reply(err.to_string()).await?;
