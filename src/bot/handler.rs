@@ -14,7 +14,7 @@ use crate::{
   error::BotError,
 };
 
-// todo: make it injectable
+// todo: (?) make it injectable
 /// M`essage` handler context
 pub struct MContext {
   bot: Bot,
@@ -48,21 +48,22 @@ impl MContext {
         .bot
         .send_message(self.chat_id(), text)
         .parse_mode(ParseMode::Html)
+        .disable_web_page_preview(true)
         .await?,
     )
   }
 
   pub async fn settings<'u>(&'u mut self) -> Result<&'u db::UserSettings, BotError> {
     if let None = self.user_settings {
-      self.user_settings = Some(db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?);
+      self.user_settings = Some(db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?);
     }
     Ok(&self.user_settings.as_ref().unwrap())
   }
 
   pub async fn start_n_init(&self) -> BotResult {
-    _ = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
+    _ = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
     self
-      .reply("Привет. Это бета.\nТебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>")
+      .reply("Привет. Это бета. По всем вопросам <a href=\"https://t.me/pashokitsme\">сюда</a>.\nТебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>")
       .await?;
     Ok(())
   }
@@ -74,7 +75,10 @@ impl MContext {
       };
     }
 
-    let markup = InlineKeyboardMarkup::new(buttons_column!(("GitHub", "https://github.com/pashokitsme")));
+    let markup = InlineKeyboardMarkup::new(buttons_column!(
+      ("По всем вопросам", "https://t.me/pashokitsme"),
+      ("GitHub", "https://github.com/pashokitsme")
+    ));
     let msg = format!("<b>Информация</b>\n\nЗаглушка :(");
     self
       .send_message(self.chat_id(), msg)
@@ -85,20 +89,23 @@ impl MContext {
   }
 
   pub async fn toggle_notifications(&self) -> BotResult {
-    let mut user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
+    let mut user = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
     user.is_notifications_enabled = !user.is_notifications_enabled;
-    db::update_user(&self.mongo, &user).await?;
+    db::update_user_settings(&self.mongo, &user).await?;
     self.reply(format!("{}", user.is_notifications_enabled)).await?;
     Ok(())
   }
 
   pub async fn set_group(&self, group: &String) -> BotResult {
     if group.is_empty() || group.len() > 10 {
-      return Err(BotError::InvalidCommandUsage("<code>/set_group [группа: str, длина < 10]</code>".into()));
+      return Err(BotError::InvalidCommandUsage(
+        "Использование команды:\n<code>/set_group [группа: str, длина &lt; 10]</code>\nПример:\n<code>/set_group Ир3-21</code>"
+          .into(),
+      ));
     }
-    let mut user = db::get_or_create_user(&self.mongo, self.user.id.0 as i64).await?;
+    let mut user = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
     user.group = Some(group.clone());
-    db::update_user(&self.mongo, &user).await?;
+    db::update_user_settings(&self.mongo, &user).await?;
     if user.group.is_none() {
       self.toggle_notifications().await?;
     }

@@ -11,19 +11,19 @@ pub enum BotError {
   #[error("Нет расписания")]
   NoTimetable,
 
-  #[error("Ошибка API\n<code>{1}</code>")]
+  #[error("Ошибка API:\n<code>{1}</code>")]
   ApiError(String, String),
 
-  #[error("Ошибка MongoDB\n<code>{0}</code>")]
-  MongoError(MongoError),
+  #[error("Ошибка MongoDB:\n<code>{0}</code>")]
+  MongoError(String),
 
-  #[error("Ошибка TeloxideAPI\n<code>{0}</code>")]
+  #[error("Ошибка TeloxideAPI:\n<code>{0}</code>")]
   TeloxideApiError(teloxide::ApiError),
 
-  #[error("Ошибка TeloxideRequest\n<code>{0}</code>")]
+  #[error("Ошибка TeloxideRequest:\n<code>{0}</code>")]
   TeloxideRequestError(teloxide::RequestError),
 
-  #[error("Ошибка InMemStorage\n<code>{0}</code>")]
+  #[error("Ошибка InMemStorage:\n<code>{0}</code>")]
   TeloxideInMemStorageError(InMemStorageError),
 }
 
@@ -53,6 +53,6 @@ impl From<InMemStorageError> for BotError {
 
 impl From<MongoError> for BotError {
   fn from(err: MongoError) -> Self {
-    Self::MongoError(err)
+    Self::MongoError(err.to_string())
   }
 }

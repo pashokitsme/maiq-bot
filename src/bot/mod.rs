@@ -9,7 +9,11 @@ use teloxide::{
   Bot,
 };
 
-use crate::{api, db::Mongo, error::BotError};
+use crate::{
+  api,
+  db::{self, Mongo},
+  error::BotError,
+};
 
 use self::handler::MContext;
 
@@ -36,6 +40,9 @@ pub enum Command {
 
   #[command(description = "Расписание на следующий день")]
   Next,
+
+  #[command(description = "None")]
+  DevNotifiables,
 
   #[command(description = "Информация")]
   About,
@@ -76,6 +83,11 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::SetGroup(ref group) => ctx.set_group(group).await?,
     Command::Today => send_single_timetable(ctx, false).await?,
     Command::Next => send_single_timetable(ctx, true).await?,
+
+    Command::DevNotifiables => ctx
+      .reply(format!("{:#?}", db::get_notifiables(&ctx.mongo).await?))
+      .await
+      .map(|_| ())?,
   }
   Ok(())
 }
