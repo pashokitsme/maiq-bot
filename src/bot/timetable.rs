@@ -33,18 +33,17 @@ fn display_lesson(lesson: &Lesson) -> String {
   let mut res = format!("({}", lesson.num);
   res = match lesson.classroom.as_ref() {
     Some(classroom) => format!("{}, {})", res, classroom),
-    None => format!("{})", res),
+    None => return format!("{}) {}\n\n", res, lesson.name),
   };
   res = match lesson.subgroup {
     Some(sub) => format!("{} (п. {})", res, sub),
     None => res,
   };
-  res = format!("{} {}", res, lesson.name);
   res = match lesson.teacher.as_ref() {
-    Some(teacher) => format!("{} [{}]", res, teacher),
+    Some(teacher) => format!("{} {}", res, teacher),
     None => res,
   };
+  res = format!("{}\n<b>{}</b>\n\n", res, lesson.name);
 
-  res.push_str("\n\n");
   res
 }
