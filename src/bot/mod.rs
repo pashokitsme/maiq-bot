@@ -18,6 +18,7 @@ use crate::{
 use self::handler::MContext;
 
 mod handler;
+mod notifier;
 mod timetable;
 
 pub type BotResult = Result<(), BotError>;
@@ -43,6 +44,9 @@ pub enum Command {
 
   #[command(description = "None")]
   DevNotifiables,
+
+  #[command(description = "None")]
+  DevSend,
 
   #[command(description = "Информация")]
   About,
@@ -88,6 +92,9 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
       .reply(format!("{:#?}", db::get_notifiables(&ctx.mongo).await?))
       .await
       .map(|_| ())?,
+    Command::DevSend => {
+      notifier::process_notify_users(&ctx, &ctx.mongo, &api::get_snapshot("Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B").await?).await?
+    }
   }
   Ok(())
 }
