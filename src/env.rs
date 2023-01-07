@@ -10,6 +10,7 @@ macro_rules! env_var {
 }
 
 env_var!(TELOXIDE_TOKEN);
+env_var!(DEV_ID);
 env_var!(API_HOST);
 env_var!(DB_URL, "DATABASE_CONNECTION_URL");
 env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");

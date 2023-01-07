@@ -4,7 +4,7 @@ use teloxide::{
   macros::BotCommands,
   prelude::Dispatcher,
   requests::Requester,
-  types::{Message, Update},
+  types::{Message, Update, UserId},
   utils::command::BotCommands as _,
   Bot,
 };
@@ -12,6 +12,7 @@ use teloxide::{
 use crate::{
   api,
   db::{self, Mongo},
+  env,
   error::BotError,
 };
 
@@ -42,14 +43,18 @@ pub enum Command {
   #[command(description = "Расписание на следующий день")]
   Next,
 
-  #[command(description = "None")]
-  DevNotifiables,
-
-  #[command(description = "None")]
-  DevSend,
-
   #[command(description = "Информация")]
   About,
+}
+
+#[derive(BotCommands, Clone, Debug)]
+#[command(rename_rule = "snake_case")]
+pub enum DevCommand {
+  #[command(description = "")]
+  DevNotifiables,
+
+  #[command(description = "")]
+  DevSend,
 }
 
 pub async fn start(bot: Bot, mongo: Mongo) {
@@ -57,10 +62,16 @@ pub async fn start(bot: Bot, mongo: Mongo) {
     .set_my_commands(Command::bot_commands())
     .await
     .expect("Couldn't set bot commands");
-
+  let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap());
+  info!("Dev ID: {}", dev_id);
   let handler = Update::filter_message()
-    .filter_command::<Command>()
-    .branch(dp::endpoint(command_handler));
+    .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
+    .branch(
+      dp::entry()
+        .filter(move |msg: Message| msg.from().unwrap().id == dev_id)
+        .filter_command::<DevCommand>()
+        .endpoint(dev_command_handler),
+    );
 
   info!("Started");
   Dispatcher::builder(bot, handler)
@@ -79,6 +90,20 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: Mongo)
   Ok(())
 }
 
+pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo: Mongo) -> BotResult {
+  match cmd {
+    DevCommand::DevNotifiables => bot
+      .send_message(msg.from().unwrap().id, format!("{:#?}", db::get_notifiables(&mongo).await?))
+      .await
+      .map(|_| ())?,
+    DevCommand::DevSend => {
+      notifier::process_notify_users(&bot, &mongo, &api::get_snapshot("Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B").await?).await?
+    }
+  }
+
+  Ok(())
+}
+
 async fn try_execute_command(ctx: &mut MContext) -> BotResult {
   match ctx.used_command {
     Command::Start => ctx.start_n_init().await?,
@@ -87,14 +112,6 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::SetGroup(ref group) => ctx.set_group(group).await?,
     Command::Today => send_single_timetable(ctx, false).await?,
     Command::Next => send_single_timetable(ctx, true).await?,
-
-    Command::DevNotifiables => ctx
-      .reply(format!("{:#?}", db::get_notifiables(&ctx.mongo).await?))
-      .await
-      .map(|_| ())?,
-    Command::DevSend => {
-      notifier::process_notify_users(&ctx, &ctx.mongo, &api::get_snapshot("Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B").await?).await?
-    }
   }
   Ok(())
 }
