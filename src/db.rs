@@ -79,6 +79,7 @@ pub async fn new_user_settings(db: &Mongo, id: i64) -> Result<UserSettings, Mong
 }
 
 pub async fn get_notifiables<'a>(db: &'a Mongo) -> Result<Vec<Notifiable>, BotError> {
+  info!("Colleting notifiable users");
   let users = user_settings_models(&db);
   let mut notifies: Vec<Notifiable> = vec![];
   let mut cur = users.find(doc! { "is_notifications_enabled": true }, None).await?;
