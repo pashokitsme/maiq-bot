@@ -12,7 +12,6 @@ lto = true
 opt-level = "s"
 
 [dependencies]
-async-trait = "0.1.60"
 chrono = { version = "0.4.23", features = ["serde"] }
 dotenvy = "0.15.6"
 lazy_static = "1.4.0"
@@ -26,4 +25,3 @@ serde_json = "1.0.91"
 teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros"] }
 thiserror = "1.0.38"
 tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
-trait_enum = "0.5.0"

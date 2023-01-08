@@ -1,3 +1,4 @@
+use background_poller::Poller;
 use teloxide::Bot;
 
 #[macro_use]
@@ -7,6 +8,7 @@ extern crate log;
 extern crate lazy_static;
 
 mod api;
+mod background_poller;
 mod bot;
 mod db;
 mod env;
@@ -20,5 +22,11 @@ async fn main() {
 
   let mongo = db::init().await.expect("Couldn't connect to database");
   let bot = Bot::from_env();
-  bot::start(bot, mongo).await
+
+  let bot_ref = bot.clone();
+  let mut poller = Poller::new(bot_ref).await;
+  tokio::spawn(async move { poller.run().await });
+
+  let bot_ref = bot.clone();
+  bot::start(bot_ref, mongo).await
 }

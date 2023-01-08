@@ -22,8 +22,8 @@ pub struct ApiError {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Poll {
-  pub last_updated: Option<DateTime<Utc>>,
-  pub next_update: Option<DateTime<Utc>>,
+  pub last_update: DateTime<Utc>,
+  pub next_update: DateTime<Utc>,
   pub latest_today_uid: Option<String>,
   pub latest_next_uid: Option<String>,
 }
@@ -35,26 +35,23 @@ impl From<reqwest::Error> for ApiError {
 }
 
 pub async fn get_latest_today() -> Result<Snapshot, ApiError> {
-  info!("Get today timetable");
   get(&*TODAY_URL).await
 }
 
 pub async fn get_latest_next() -> Result<Snapshot, ApiError> {
-  info!("Get next timetable");
   get(&*NEXT_URL).await
 }
 
 pub async fn get_snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
-  info!("Get snapshot {}", uid.as_ref());
   get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
 }
 
 pub async fn poll() -> Result<Poll, ApiError> {
-  info!("Polling..");
   get(&*POLL_URL).await
 }
 
 async fn get<T: AsRef<str>, O: DeserializeOwned>(url: T) -> Result<O, ApiError> {
+  info!("GET {}", url.as_ref());
   let res = reqwest::get(url.as_ref()).await?;
   match res.status() {
     StatusCode::OK => Ok(res.json().await?),

@@ -62,7 +62,7 @@ pub async fn start(bot: Bot, mongo: Mongo) {
     .set_my_commands(Command::bot_commands())
     .await
     .expect("Couldn't set bot commands");
-  let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap());
+  let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
   info!("Dev ID: {}", dev_id);
   let handler = Update::filter_message()
     .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
@@ -100,7 +100,7 @@ pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo:
       .await
       .map(|_| ())?,
     DevCommand::DevSend => {
-      notifier::process_notify_users(&bot, &mongo, &api::get_snapshot("Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B").await?).await?
+      notifier::try_notify_users(&bot, &mongo, &api::get_snapshot("Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B").await?).await?
     }
   }
 
