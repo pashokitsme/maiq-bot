@@ -18,8 +18,9 @@ use crate::{
 
 use self::handler::MContext;
 
+pub mod notifier;
+
 mod handler;
-mod notifier;
 mod timetable;
 
 pub type BotResult = Result<(), BotError>;

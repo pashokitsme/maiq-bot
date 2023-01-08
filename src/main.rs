@@ -24,7 +24,8 @@ async fn main() {
   let bot = Bot::from_env();
 
   let bot_ref = bot.clone();
-  let mut poller = Poller::new(bot_ref).await;
+  let mongo_ref = mongo.clone();
+  let mut poller = Poller::new(bot_ref, mongo_ref).await;
   tokio::spawn(async move { poller.run().await });
 
   let bot_ref = bot.clone();
