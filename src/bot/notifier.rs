@@ -1,6 +1,6 @@
 use std::future::IntoFuture;
 
-use maiq_structs::Snapshot;
+use maiq_shared::Snapshot;
 use teloxide::{
   payloads::SendMessageSetters,
   requests::Requester,

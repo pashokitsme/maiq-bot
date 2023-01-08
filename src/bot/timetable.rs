@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use maiq_structs::{Group, Lesson, Snapshot};
+use maiq_shared::{Group, Lesson, Snapshot};
 
 use crate::error::BotError;
 

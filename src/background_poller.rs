@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use maiq_structs::utils;
+use maiq_shared::utils;
 use teloxide::Bot;
 use tokio::time::sleep;
 

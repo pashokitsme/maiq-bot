@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use chrono::{DateTime, Utc};
-use maiq_structs::Snapshot;
+use maiq_shared::Snapshot;
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize};
 
