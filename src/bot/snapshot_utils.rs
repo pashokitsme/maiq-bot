@@ -1,30 +1,35 @@
 use std::collections::HashMap;
 
-use maiq_shared::{Group, Lesson, Snapshot};
+use chrono::{DateTime, Utc};
+use maiq_shared::{utils, Group, Lesson, Snapshot};
 
 use crate::error::BotError;
 
 use super::BotBodyResult;
 
-pub fn get_formatted_snapshot(snapshot: &Snapshot) -> Result<HashMap<String, String>, BotError> {
-  Ok(
-    snapshot
-      .groups
-      .iter()
-      .map(|g| (g.name.clone(), display_group(&g, &snapshot.uid)))
-      .collect::<HashMap<String, String>>(),
-  )
+/// Group = Message Body
+pub fn separate_to_groups(snapshot: &Snapshot) -> HashMap<String, String> {
+  snapshot
+    .groups
+    .iter()
+    .map(|g| (g.name.clone(), display_group(&g, &snapshot.uid, snapshot.date)))
+    .collect::<HashMap<String, String>>()
 }
 
 pub async fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBodyResult {
   snapshot
     .group(group_name)
     .ok_or(BotError::NoTimetable)
-    .map(|g| display_group(&g, &snapshot.uid))
+    .map(|g| display_group(&g, &snapshot.uid, snapshot.date))
 }
 
-fn display_group(group: &Group, snapshot_uid: &String) -> String {
-  let mut res = format!("Расписание <b>{}</b>\t(<code>{}</code>)\n\n", group.name, snapshot_uid);
+fn display_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> String {
+  let mut res = match date == utils::now_date(0) {
+    true => format!("Расписание <b>{}</b> на <code>сегодня</code>\n[{}]\n\n", group.name, snapshot_uid),
+    false => {
+      format!("Расписание <b>{}</b> на <code>{}</code>\n[<code>{}</code>]\n\n", group.name, date.format("%d.%m.%Y"), snapshot_uid)
+    }
+  };
   group.lessons.iter().for_each(|l| res.push_str(&display_lesson(&l)));
   res
 }

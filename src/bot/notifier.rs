@@ -14,22 +14,26 @@ use crate::{
   error::BotError,
 };
 
-use super::timetable;
+use super::snapshot_utils;
 
 pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, snapshot: &Snapshot) -> Result<(), BotError> {
-  let timetable = timetable::get_formatted_snapshot(snapshot)?;
+  let timetables = snapshot_utils::separate_to_groups(snapshot);
   let notifiables = db::get_notifiables(&mongo).await?;
 
   let mut set: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
 
   for noty in notifiables {
-    let body = timetable
+    let body = timetables
       .get(&noty.group)
       .map_or(BotError::NoTimetable.to_string(), |x| x.clone());
 
     for id in noty.user_ids {
-      let task = bot.send_message(ChatId(id), &body).parse_mode(ParseMode::Html);
-      set.spawn(task.into_future());
+      set.spawn(
+        bot
+          .send_message(ChatId(id), &body)
+          .parse_mode(ParseMode::Html)
+          .into_future(),
+      );
     }
   }
 

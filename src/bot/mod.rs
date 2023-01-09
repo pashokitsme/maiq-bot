@@ -21,7 +21,7 @@ use self::handler::MContext;
 pub mod notifier;
 
 mod handler;
-mod timetable;
+mod snapshot_utils;
 
 pub type BotResult = Result<(), BotError>;
 pub type BotBodyResult = Result<String, BotError>;
@@ -131,7 +131,7 @@ async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
     false => api::get_latest_today().await,
   }?;
 
-  let res = timetable::format_timetable(group, &snapshot).await?;
+  let res = snapshot_utils::format_timetable(group, &snapshot).await?;
   ctx.reply(res).await?;
   Ok(())
 }
