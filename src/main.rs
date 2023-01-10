@@ -17,7 +17,7 @@ mod error;
 #[tokio::main]
 async fn main() {
   dotenvy::dotenv().ok();
-  pretty_env_logger::init();
+  pretty_env_logger::init_timed();
   env::check_env_vars();
 
   let mongo = db::init().await.expect("Couldn't connect to database");

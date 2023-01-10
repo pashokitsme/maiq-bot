@@ -63,7 +63,7 @@ impl MContext {
   pub async fn start_n_init(&self) -> BotResult {
     _ = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
     self
-      .reply("Привет. Это бета. По всем вопросам <a href=\"https://t.me/pashokitsme\">сюда</a>.\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>")
+      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\nКстати, в поиске хоста.\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>")
       .await?;
     Ok(())
   }
@@ -77,6 +77,7 @@ impl MContext {
 
     let markup = InlineKeyboardMarkup::new(buttons_column!(
       ("По всем вопросам", "https://t.me/pashokitsme"),
+      ("API", "https://github.com/pashokitsme/maiq-web-api"),
       ("GitHub", "https://github.com/pashokitsme")
     ));
     let msg = format!("<b>Информация</b>\n\nЗаглушка :(");
