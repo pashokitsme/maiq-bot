@@ -1,5 +1,6 @@
+use reqwest::Url;
 use teloxide::{
-  dispatching::{HandlerExt, UpdateFilterExt},
+  dispatching::{update_listeners::webhooks, DefaultKey, HandlerExt, UpdateFilterExt},
   dptree as dp,
   macros::BotCommands,
   prelude::Dispatcher,
@@ -63,6 +64,7 @@ pub async fn start(bot: Bot, mongo: Mongo) {
     .set_my_commands(Command::bot_commands())
     .await
     .expect("Couldn't set bot commands");
+  let me = bot.get_me().await.expect("Login error");
   let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
   info!("Dev ID: {}", dev_id);
   let handler = Update::filter_message()
@@ -74,7 +76,7 @@ pub async fn start(bot: Bot, mongo: Mongo) {
         .endpoint(dev_command_handler),
     );
 
-  let me = bot.get_me().await.expect("Login error");
+  bot.delete_webhook().await.expect("Couldn't delete webhook");
   info!("Logged in as {} [@{}]", me.full_name(), me.username());
   info!("Started");
   Dispatcher::builder(bot, handler)
@@ -82,8 +84,22 @@ pub async fn start(bot: Bot, mongo: Mongo) {
     .enable_ctrlc_handler()
     .build()
     .dispatch()
-    .await
+    .await;
 }
+
+/*
+? maybe will be used in future
+async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotError, DefaultKey>) {
+  info!("Got webhook: {}", url);
+  let listener = webhooks::axum(bot, webhooks::Options::new(([127, 0, 0, 1], 5500).into(), url))
+    .await
+    .expect("Couldn't start with webhook");
+
+  dispatcher
+    .dispatch_with_listener(listener, update_listener_error_handler)
+    .await;
+}
+*/
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: Mongo) -> BotResult {
   info!("Command {:?} from {} [{}]", cmd, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);

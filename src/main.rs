@@ -1,4 +1,4 @@
-use background_poller::Poller;
+use poller::Poller;
 use teloxide::Bot;
 
 #[macro_use]
@@ -8,16 +8,16 @@ extern crate log;
 extern crate lazy_static;
 
 mod api;
-mod background_poller;
 mod bot;
 mod db;
 mod env;
 mod error;
+mod poller;
 
 #[tokio::main]
 async fn main() {
   dotenvy::dotenv().ok();
-  pretty_env_logger::init_timed();
+  pretty_env_logger::init();
   env::check_env_vars();
 
   let mongo = db::init().await.expect("Couldn't connect to database");
