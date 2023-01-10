@@ -34,8 +34,6 @@ impl Poller {
         }
       };
 
-      info!("Received poll: {:?}", poll);
-
       if self.prev.latest_today_uid != poll.latest_today_uid && poll.latest_today_uid.is_some() {
         self.notify(poll.latest_today_uid.as_ref().unwrap().as_str()).await;
       }
