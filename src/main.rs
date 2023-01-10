@@ -16,7 +16,7 @@ mod error;
 
 #[tokio::main]
 async fn main() {
-  dotenvy::dotenv().expect("Unable to init .env");
+  dotenvy::dotenv().ok();
   pretty_env_logger::init();
   env::check_env_vars();
 

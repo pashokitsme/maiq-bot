@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use chrono::{DateTime, Utc};
 use maiq_shared::Snapshot;
 use reqwest::StatusCode;

@@ -61,7 +61,7 @@ pub async fn get_or_create_user_settings(db: &Mongo, id: i64) -> Result<UserSett
 pub async fn update_user_settings(db: &Mongo, user: &UserSettings) -> Result<Option<UserSettings>, MongoError> {
   Ok(
     user_settings_models(&db)
-      .find_one_and_replace(doc! { "id": user.id}, user, None)
+      .find_one_and_replace(doc! { "id": user.id }, user, None)
       .await?,
   )
 }
