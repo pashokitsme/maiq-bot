@@ -1,6 +1,5 @@
-use reqwest::Url;
 use teloxide::{
-  dispatching::{update_listeners::webhooks, DefaultKey, HandlerExt, UpdateFilterExt},
+  dispatching::{HandlerExt, UpdateFilterExt},
   dptree as dp,
   macros::BotCommands,
   prelude::Dispatcher,

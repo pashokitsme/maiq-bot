@@ -22,7 +22,7 @@ pretty_env_logger = "0.4.0"
 reqwest = { version = "0.11.13", features = ["json"] }
 serde = { version = "1.0.152", features = ["serde_derive"] }
 serde_json = "1.0.91"
-teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros", "webhooks", "webhooks-axum"] }
+teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros"] }
 thiserror = "1.0.38"
 tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
 openssl = { version = "0.10.45", features = ["vendored"] }
