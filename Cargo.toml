@@ -25,3 +25,5 @@ serde_json = "1.0.91"
 teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros"] }
 thiserror = "1.0.38"
 tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
+openssl = { version = "0.10.45", features = ["vendored"] }
+openssl-sys = { version = "0.9.80", features = ["openssl-src", "vendored"] }
