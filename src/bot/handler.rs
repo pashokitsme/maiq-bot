@@ -1,5 +1,4 @@
-use chrono::Weekday;
-
+use chrono::{Datelike, NaiveDate};
 use reqwest::Url;
 use std::ops::Deref;
 use teloxide::{
@@ -9,7 +8,7 @@ use teloxide::{
   Bot,
 };
 
-use super::{snapshot_utils::display_default, Command};
+use super::{formatter::display_default, Command};
 use crate::{
   api,
   bot::BotResult,
@@ -117,14 +116,14 @@ impl MContext {
     Ok(())
   }
 
-  pub async fn reply_default(&self, day: Weekday) -> BotResult {
+  pub async fn reply_default(&self, date: NaiveDate) -> BotResult {
     let group = match self.settings().await?.group {
       Some(g) => g,
       None => return self.reply("Ты не указал группу").await.map(|_| ()),
     };
 
-    let default = api::get_default(group, day).await?;
-    self.reply(display_default(default, day)).await?;
+    let default = api::get_default(group, date.weekday()).await?;
+    self.reply(display_default(default, date)).await?;
     Ok(())
   }
 }

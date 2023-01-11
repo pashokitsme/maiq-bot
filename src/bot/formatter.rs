@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc, Weekday};
+use chrono::{DateTime, Datelike, NaiveDate, Utc, Weekday};
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
   utils, Group, Lesson, Snapshot,
@@ -26,12 +26,19 @@ pub fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBody
     .ok_or(BotError::NoTimetable)
 }
 
-pub fn display_default(default: DefaultGroup, day: Weekday) -> String {
-  let mut res = format!("Стандартное расписание <code>{}</code> <b>{}</b>\n\n", day, default.name);
-  default
-    .lessons
-    .iter()
-    .for_each(|l| res.push_str(&display_default_lesson(&l)));
+pub fn display_default(default: DefaultGroup, date: NaiveDate) -> String {
+  let mut res =
+    format!("Стандартное расписание <code>{}</code> на <code>{}</code>", default.name, map_weekday_to_str(date.weekday()));
+  let is_week_even = date.iso_week().week() % 2 == 0;
+  match is_week_even {
+    true => res.push_str("\nЧётная неделя\n\n"),
+    false => res.push_str("\n<b>Не</b>чётная неделя\n\n"),
+  };
+  default.lessons.iter().for_each(|l| {
+    if let Some(lesson) = &display_default_lesson(&l, is_week_even) {
+      res.push_str(lesson)
+    }
+  });
 
   res
 }
@@ -66,18 +73,18 @@ fn display_lesson(lesson: &Lesson) -> String {
   res
 }
 
-fn display_default_lesson(lesson: &DefaultLesson) -> String {
+fn display_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<String> {
   let mut res = match lesson.is_even {
-    Some(e) => match e {
-      true => format!("(<code>Чёт.</code>, {}", lesson.num),
-      false => format!("(<code>Нечёт.</code>, {}", lesson.num),
+    Some(even) => match even && is_even_week {
+      true => format!("({}", lesson.num),
+      false => return None,
     },
     None => format!("({}", lesson.num),
   };
 
   res = match lesson.classroom.as_ref() {
     Some(classroom) => format!("{}, {})", res, classroom),
-    None => return format!("{}) <b>{}</b>\n\n", res, lesson.name),
+    None => return Some(format!("{}) <b>{}</b>\n\n", res, lesson.name)),
   };
   res = match lesson.subgroup {
     Some(sub) => format!("{} (п. {})", res, sub),
@@ -89,5 +96,17 @@ fn display_default_lesson(lesson: &DefaultLesson) -> String {
   };
   res = format!("{}\n<b>{}</b>\n\n", res, lesson.name);
 
-  res
+  Some(res)
+}
+
+fn map_weekday_to_str<'a>(weekday: Weekday) -> &'a str {
+  match weekday {
+    Weekday::Mon => "понедельник",
+    Weekday::Tue => "вторник",
+    Weekday::Wed => "среду",
+    Weekday::Thu => "четверг",
+    Weekday::Fri => "пятницу",
+    Weekday::Sat => "субботу",
+    Weekday::Sun => "воскресенье",
+  }
 }

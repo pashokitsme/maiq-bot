@@ -1,4 +1,3 @@
-use chrono::Datelike;
 use maiq_shared::utils;
 use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt},
@@ -22,8 +21,8 @@ use self::handler::MContext;
 
 pub mod notifier;
 
+mod formatter;
 mod handler;
-mod snapshot_utils;
 
 pub type BotResult = Result<(), BotError>;
 pub type BotBodyResult = Result<String, BotError>;
@@ -140,8 +139,8 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::SetGroup(ref group) => ctx.set_group(group).await?,
     Command::Today => send_single_timetable(ctx, false).await?,
     Command::Next => send_single_timetable(ctx, true).await?,
-    Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive().weekday()).await?,
-    Command::DefaultNext => ctx.reply_default(utils::now(1).date_naive().weekday()).await?,
+    Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive()).await?,
+    Command::DefaultNext => ctx.reply_default(utils::now(1).date_naive()).await?,
   }
   Ok(())
 }
@@ -157,24 +156,24 @@ async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
     false => api::get_latest_today().await,
   };
 
-  let weekday = match is_next {
-    true => utils::now(1).date_naive().weekday(),
-    false => utils::now(0).date_naive().weekday(),
+  let date = match is_next {
+    true => utils::now(1).date_naive(),
+    false => utils::now(0).date_naive(),
   };
 
   let snapshot = match snapshot {
     Ok(s) => s,
     Err(e) => {
       ctx.reply(BotError::from(e).to_string()).await?;
-      return ctx.reply_default(weekday).await;
+      return ctx.reply_default(date).await;
     }
   };
 
-  match snapshot_utils::format_timetable(group.as_str(), &snapshot) {
+  match formatter::format_timetable(group.as_str(), &snapshot) {
     Ok(r) => _ = ctx.reply(r).await?,
     Err(e) => {
       ctx.reply(e.to_string()).await?;
-      return ctx.reply_default(weekday).await;
+      return ctx.reply_default(date).await;
     }
   }
 

@@ -14,10 +14,10 @@ use crate::{
   error::BotError,
 };
 
-use super::snapshot_utils;
+use super::formatter;
 
 pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, snapshot: &Snapshot) -> Result<(), BotError> {
-  let timetables = snapshot_utils::separate_to_groups(snapshot);
+  let timetables = formatter::separate_to_groups(snapshot);
   let notifiables = db::get_notifiables(&mongo).await?;
 
   let mut set: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
