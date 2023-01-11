@@ -1,3 +1,4 @@
+use chrono::{Datelike, NaiveDate, Weekday};
 use maiq_shared::utils;
 use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt},
@@ -140,7 +141,7 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::Today => send_single_timetable(ctx, false).await?,
     Command::Next => send_single_timetable(ctx, true).await?,
     Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive()).await?,
-    Command::DefaultNext => ctx.reply_default(utils::now(1).date_naive()).await?,
+    Command::DefaultNext => ctx.reply_default(get_next_day()).await?,
   }
   Ok(())
 }
@@ -157,7 +158,7 @@ async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
   };
 
   let date = match is_next {
-    true => utils::now(1).date_naive(),
+    true => get_next_day(),
     false => utils::now(0).date_naive(),
   };
 
@@ -178,4 +179,12 @@ async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
   }
 
   Ok(())
+}
+
+fn get_next_day() -> NaiveDate {
+  let date = utils::now(1).date_naive();
+  match date.weekday() == Weekday::Sun {
+    true => utils::now(2).date_naive(),
+    false => date,
+  }
 }
