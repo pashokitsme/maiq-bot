@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
-use maiq_shared::Snapshot;
+use chrono::{DateTime, Utc, Weekday};
+use maiq_shared::{default::DefaultGroup, Snapshot};
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -42,6 +42,10 @@ pub async fn get_latest_next() -> Result<Snapshot, ApiError> {
 
 pub async fn get_snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
   get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
+}
+
+pub async fn get_default<T: AsRef<str>>(group: T, weekday: Weekday) -> Result<DefaultGroup, ApiError> {
+  get(format!("{}/default/{}/{}", *API_HOST, weekday, group.as_ref())).await
 }
 
 pub async fn poll() -> Result<Poll, ApiError> {

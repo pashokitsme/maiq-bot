@@ -8,7 +8,7 @@ pub enum BotError {
   #[error("{0}")]
   InvalidCommandUsage(String),
 
-  #[error("Нет расписания")]
+  #[error("Для твоей группы нет расписания 😟")]
   NoTimetable,
 
   #[error("Ошибка API:\n<code>{1}</code>")]

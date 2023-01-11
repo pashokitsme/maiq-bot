@@ -1,3 +1,5 @@
+use chrono::Datelike;
+use maiq_shared::utils;
 use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt},
   dptree as dp,
@@ -43,6 +45,12 @@ pub enum Command {
 
   #[command(description = "Расписание на следующий день")]
   Next,
+
+  #[command(description = "Стандартное расписание на сегодня")]
+  DefaultToday,
+
+  #[command(description = "Обычное расписание на завтра")]
+  DefaultNext,
 
   #[command(description = "Информация")]
   About,
@@ -131,6 +139,8 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::SetGroup(ref group) => ctx.set_group(group).await?,
     Command::Today => send_single_timetable(ctx, false).await?,
     Command::Next => send_single_timetable(ctx, true).await?,
+    Command::DefaultToday => ctx.get_default(utils::now(0).date_naive().weekday()).await?,
+    Command::DefaultNext => ctx.get_default(utils::now(1).date_naive().weekday()).await?,
   }
   Ok(())
 }

@@ -1,3 +1,5 @@
+use chrono::Weekday;
+
 use reqwest::Url;
 use std::ops::Deref;
 use teloxide::{
@@ -7,8 +9,9 @@ use teloxide::{
   Bot,
 };
 
-use super::Command;
+use super::{snapshot_utils::display_default, Command};
 use crate::{
+  api,
   bot::BotResult,
   db::{self, Mongo},
   error::BotError,
@@ -38,15 +41,19 @@ impl MContext {
     Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo, user_settings: None }
   }
 
-  pub fn chat_id(&self) -> ChatId {
+  pub fn sender_id(&self) -> ChatId {
     self.msg.chat.id
+  }
+
+  pub fn sender_id_i64(&self) -> i64 {
+    self.sender_id().0 as i64
   }
 
   pub async fn reply<T: Into<String>>(&self, text: T) -> Result<Message, BotError> {
     Ok(
       self
         .bot
-        .send_message(self.chat_id(), text)
+        .send_message(self.sender_id(), text)
         .parse_mode(ParseMode::Html)
         .disable_web_page_preview(true)
         .await?,
@@ -55,13 +62,13 @@ impl MContext {
 
   pub async fn settings<'u>(&'u mut self) -> Result<&'u db::UserSettings, BotError> {
     if let None = self.user_settings {
-      self.user_settings = Some(db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?);
+      self.user_settings = Some(db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?);
     }
     Ok(&self.user_settings.as_ref().unwrap())
   }
 
   pub async fn start_n_init(&self) -> BotResult {
-    _ = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
+    _ = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
     self
       .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>",)
       .await?;
@@ -82,7 +89,7 @@ impl MContext {
     ));
     let msg = format!("<b>Информация</b>\nЗаглушка :(");
     self
-      .send_message(self.chat_id(), msg)
+      .send_message(self.sender_id(), msg)
       .parse_mode(ParseMode::Html)
       .reply_markup(markup)
       .await?;
@@ -90,7 +97,7 @@ impl MContext {
   }
 
   pub async fn toggle_notifications(&self) -> BotResult {
-    let mut user = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
+    let mut user = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
     user.is_notifications_enabled = !user.is_notifications_enabled;
     db::update_user_settings(&self.mongo, &user).await?;
     self.reply(format!("{}", user.is_notifications_enabled)).await?;
@@ -104,13 +111,27 @@ impl MContext {
           .into(),
       ));
     }
-    let mut user = db::get_or_create_user_settings(&self.mongo, self.user.id.0 as i64).await?;
+    let mut user = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
     user.group = Some(group.clone());
     user.is_notifications_enabled = true;
     db::update_user_settings(&self.mongo, &user).await?;
     self
       .reply(format!("Теперь твоя группа: <code>{}</code>", user.group.unwrap()))
       .await?;
+    Ok(())
+  }
+
+  pub async fn get_default(&self, day: Weekday) -> BotResult {
+    let group = match db::get_or_create_user_settings(&self.mongo, self.sender_id_i64())
+      .await?
+      .group
+    {
+      Some(g) => g,
+      None => return self.reply("Ты не указал группу").await.map(|_| ()),
+    };
+
+    let default = api::get_default(group, day).await?;
+    self.reply(display_default(default, day)).await?;
     Ok(())
   }
 }
