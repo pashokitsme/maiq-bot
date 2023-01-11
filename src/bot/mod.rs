@@ -71,6 +71,7 @@ pub async fn start(bot: Bot, mongo: Mongo) {
     .set_my_commands(Command::bot_commands())
     .await
     .expect("Couldn't set bot commands");
+
   let me = bot.get_me().await.expect("Login error");
   let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
   info!("Dev ID: {}", dev_id);
@@ -139,24 +140,43 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::SetGroup(ref group) => ctx.set_group(group).await?,
     Command::Today => send_single_timetable(ctx, false).await?,
     Command::Next => send_single_timetable(ctx, true).await?,
-    Command::DefaultToday => ctx.get_default(utils::now(0).date_naive().weekday()).await?,
-    Command::DefaultNext => ctx.get_default(utils::now(1).date_naive().weekday()).await?,
+    Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive().weekday()).await?,
+    Command::DefaultNext => ctx.reply_default(utils::now(1).date_naive().weekday()).await?,
   }
   Ok(())
 }
 
 async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
-  let group = match ctx.settings().await?.group.as_ref() {
-    Some(x) => x.as_str(),
+  let group = match ctx.settings().await?.group {
+    Some(x) => x,
     None => return Err(BotError::NoTimetable),
   };
 
   let snapshot = match is_next {
     true => api::get_latest_next().await,
     false => api::get_latest_today().await,
-  }?;
+  };
 
-  let res = snapshot_utils::format_timetable(group, &snapshot).await?;
-  ctx.reply(res).await?;
+  let weekday = match is_next {
+    true => utils::now(1).date_naive().weekday(),
+    false => utils::now(0).date_naive().weekday(),
+  };
+
+  let snapshot = match snapshot {
+    Ok(s) => s,
+    Err(e) => {
+      ctx.reply(BotError::from(e).to_string()).await?;
+      return ctx.reply_default(weekday).await;
+    }
+  };
+
+  match snapshot_utils::format_timetable(group.as_str(), &snapshot) {
+    Ok(r) => _ = ctx.reply(r).await?,
+    Err(e) => {
+      ctx.reply(e.to_string()).await?;
+      return ctx.reply_default(weekday).await;
+    }
+  }
+
   Ok(())
 }

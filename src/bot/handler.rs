@@ -13,7 +13,7 @@ use super::{snapshot_utils::display_default, Command};
 use crate::{
   api,
   bot::BotResult,
-  db::{self, Mongo},
+  db::{self, Mongo, UserSettings},
   error::BotError,
 };
 
@@ -25,7 +25,6 @@ pub struct MContext {
   pub user: User,
   pub used_command: Command,
   pub mongo: Mongo,
-  user_settings: Option<db::UserSettings>,
 }
 
 impl Deref for MContext {
@@ -38,7 +37,7 @@ impl Deref for MContext {
 
 impl MContext {
   pub fn new(bot: Bot, msg: Message, cmd: Command, mongo: Mongo) -> Self {
-    Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo, user_settings: None }
+    Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo }
   }
 
   pub fn sender_id(&self) -> ChatId {
@@ -60,11 +59,8 @@ impl MContext {
     )
   }
 
-  pub async fn settings<'u>(&'u mut self) -> Result<&'u db::UserSettings, BotError> {
-    if let None = self.user_settings {
-      self.user_settings = Some(db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?);
-    }
-    Ok(&self.user_settings.as_ref().unwrap())
+  pub async fn settings(&self) -> Result<UserSettings, mongodb::error::Error> {
+    db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await
   }
 
   pub async fn start_n_init(&self) -> BotResult {
@@ -111,7 +107,7 @@ impl MContext {
           .into(),
       ));
     }
-    let mut user = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
+    let mut user = self.settings().await?;
     user.group = Some(group.clone());
     user.is_notifications_enabled = true;
     db::update_user_settings(&self.mongo, &user).await?;
@@ -121,11 +117,8 @@ impl MContext {
     Ok(())
   }
 
-  pub async fn get_default(&self, day: Weekday) -> BotResult {
-    let group = match db::get_or_create_user_settings(&self.mongo, self.sender_id_i64())
-      .await?
-      .group
-    {
+  pub async fn reply_default(&self, day: Weekday) -> BotResult {
+    let group = match self.settings().await?.group {
       Some(g) => g,
       None => return self.reply("Ты не указал группу").await.map(|_| ()),
     };

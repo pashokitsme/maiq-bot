@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Datelike, Utc, Weekday};
+use chrono::{DateTime, Utc, Weekday};
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
   utils, Group, Lesson, Snapshot,
 };
 
-use crate::api;
+use crate::error::BotError;
 
 use super::BotBodyResult;
 
@@ -19,19 +19,11 @@ pub fn separate_to_groups(snapshot: &Snapshot) -> HashMap<String, String> {
     .collect::<HashMap<String, String>>()
 }
 
-pub async fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBodyResult {
-  let res = snapshot
+pub fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBodyResult {
+  snapshot
     .group(group_name)
-    .map(|g| display_group(&g, &snapshot.uid, snapshot.date));
-
-  match res {
-    Some(s) => Ok(s),
-    None => {
-      let day = snapshot.date.date_naive().weekday();
-      let default = api::get_default(group_name, day).await?;
-      Ok(display_default(default, day))
-    }
-  }
+    .map(|g| display_group(&g, &snapshot.uid, snapshot.date))
+    .ok_or(BotError::NoTimetable)
 }
 
 pub fn display_default(default: DefaultGroup, day: Weekday) -> String {
