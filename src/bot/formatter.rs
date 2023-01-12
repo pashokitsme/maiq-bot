@@ -23,7 +23,7 @@ pub fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBody
   snapshot
     .group(group_name)
     .map(|g| display_group(&g, &snapshot.uid, snapshot.date))
-    .ok_or(BotError::NoTimetable)
+    .ok_or(BotError::NoTimetableExpanded { group: group_name.into(), snapshot_uid: snapshot.uid.clone() })
 }
 
 pub fn display_default(default: DefaultGroup, date: NaiveDate) -> String {

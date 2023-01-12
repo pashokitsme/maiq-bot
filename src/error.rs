@@ -8,8 +8,11 @@ pub enum BotError {
   #[error("{0}")]
   InvalidCommandUsage(String),
 
-  #[error("Для твоей группы нет расписания 😟")]
+  #[error("Для твоей группы нет расписания")]
   NoTimetable,
+
+  #[error("В снапшоте <code>{snapshot_uid}</code> нет расписания для группы <b>{group}</b>")]
+  NoTimetableExpanded { group: String, snapshot_uid: String },
 
   #[error("Ошибка API:\n<code>{1}</code>")]
   ApiError(String, String),

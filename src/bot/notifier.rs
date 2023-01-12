@@ -25,7 +25,9 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, snapshot: &Snapshot) -> 
   for noty in notifiables {
     let body = timetables
       .get(&noty.group)
-      .map_or(BotError::NoTimetable.to_string(), |x| x.clone());
+      .map_or(BotError::NoTimetableExpanded { group: noty.group.clone(), snapshot_uid: snapshot.uid.clone() }.to_string(), |x| {
+        x.clone()
+      });
 
     for id in noty.user_ids {
       set.spawn(
