@@ -75,7 +75,7 @@ fn display_lesson(lesson: &Lesson) -> String {
 
 fn display_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<String> {
   let mut res = match lesson.is_even {
-    Some(even) => match even && is_even_week {
+    Some(even) => match even == is_even_week {
       true => format!("({}", lesson.num),
       false => return None,
     },
