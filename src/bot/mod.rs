@@ -37,7 +37,7 @@ pub enum Command {
   #[command(description = "Включить/выключить уведомления")]
   ToggleNotifications,
 
-  #[command(description = "[группа: str] - Изменить группу")]
+  #[command(description = "[группа] - Изменить группу")]
   SetGroup(String),
 
   #[command(description = "Расписание на сегодня")]
@@ -52,7 +52,7 @@ pub enum Command {
   #[command(description = "Стандартное расписание на завтра")]
   DefaultNext,
 
-  #[command(description = "Получить снапшот")]
+  #[command(description = "[uid] Получить снапшот")]
   Snapshot(String),
 
   #[command(description = "Информация")]
@@ -180,7 +180,7 @@ async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
   let settings = ctx.settings().await?;
   if uid.is_empty() || settings.group.is_none() {
     return Err(BotError::InvalidCommandUsage(
-      "Использование: <code>/snapshot [uid]</code>. Группа при этом должна быть указана.".into(),
+      "Использование: <code>/snapshot [uid]</code>\nГруппа при этом должна быть указана\n\nПример: <code>/snapshot m010c556zk</code>".into(),
     ));
   }
 

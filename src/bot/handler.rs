@@ -64,7 +64,7 @@ impl MContext {
   pub async fn start_n_init(&self) -> BotResult {
     _ = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
     self
-      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>\nПример:\n<code>/set_group Ир3-21</code>",)
+      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\nИ звёздочек на <a href=https://github.com/pashokitsme>гитхабе</a>! 🌟\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа]</code>\nПример:\n<code>/set_group Ир3-21</code>",)
       .await?;
     Ok(())
   }
@@ -101,8 +101,7 @@ impl MContext {
   pub async fn set_group(&self, group: &String) -> BotResult {
     if group.is_empty() || group.len() > 10 {
       return Err(BotError::InvalidCommandUsage(
-        "Использование команды:\n<code>/set_group [группа: str, длина &lt; 10]</code>\nПример:\n<code>/set_group Ир3-21</code>"
-          .into(),
+        "Использование команды:\n<code>/set_group [группа: длина &lt; 10]</code>\nПример:\n<code>/set_group Ир3-21</code>".into(),
       ));
     }
     let mut user = self.settings().await?;
