@@ -48,7 +48,7 @@ impl Poller {
 
   async fn notify<'a>(&self, uid: &'a str) {
     info!("Trying to send snapshot {} to users", uid);
-    let snapshot = match api::get_snapshot(uid).await {
+    let snapshot = match api::snapshot(uid).await {
       Ok(s) => s,
       Err(err) => {
         error!("Snapshot {} returned with error: {}: {}", uid, err.cause, err.desc);

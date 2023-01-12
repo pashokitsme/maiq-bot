@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc, Weekday};
-use maiq_shared::{default::DefaultGroup, Snapshot};
+use maiq_shared::{default::DefaultGroup, Fetch, Snapshot};
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -32,15 +32,14 @@ impl From<reqwest::Error> for ApiError {
   }
 }
 
-pub async fn get_latest_today() -> Result<Snapshot, ApiError> {
-  get(&*TODAY_URL).await
+pub async fn latest(fetch: Fetch) -> Result<Snapshot, ApiError> {
+  match fetch {
+    Fetch::Today => get(&*TODAY_URL).await,
+    Fetch::Next => get(&*NEXT_URL).await,
+  }
 }
 
-pub async fn get_latest_next() -> Result<Snapshot, ApiError> {
-  get(&*NEXT_URL).await
-}
-
-pub async fn get_snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
+pub async fn snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
   get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
 }
 

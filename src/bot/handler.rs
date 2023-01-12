@@ -47,15 +47,14 @@ impl MContext {
     self.sender_id().0 as i64
   }
 
-  pub async fn reply<T: Into<String>>(&self, text: T) -> Result<Message, BotError> {
-    Ok(
-      self
-        .bot
-        .send_message(self.sender_id(), text)
-        .parse_mode(ParseMode::Html)
-        .disable_web_page_preview(true)
-        .await?,
-    )
+  pub async fn reply<T: Into<String>>(&self, text: T) -> Result<(), BotError> {
+    self
+      .bot
+      .send_message(self.sender_id(), text)
+      .parse_mode(ParseMode::Html)
+      .disable_web_page_preview(true)
+      .await?;
+    Ok(())
   }
 
   pub async fn settings(&self) -> Result<UserSettings, mongodb::error::Error> {
@@ -65,7 +64,7 @@ impl MContext {
   pub async fn start_n_init(&self) -> BotResult {
     _ = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
     self
-      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>",)
+      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа: str]</code>\nПример:\n<code>/set_group Ир3-21</code>",)
       .await?;
     Ok(())
   }

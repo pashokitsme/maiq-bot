@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate, Weekday};
-use maiq_shared::utils;
+use maiq_shared::{utils, Fetch};
 use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt},
   dptree as dp,
@@ -49,8 +49,11 @@ pub enum Command {
   #[command(description = "Стандартное расписание на сегодня")]
   DefaultToday,
 
-  #[command(description = "Обычное расписание на завтра")]
+  #[command(description = "Стандартное расписание на завтра")]
   DefaultNext,
+
+  #[command(description = "Получить снапшот")]
+  Snapshot(String),
 
   #[command(description = "Информация")]
   About,
@@ -61,9 +64,6 @@ pub enum Command {
 pub enum DevCommand {
   #[command(description = "")]
   DevNotifiables,
-
-  #[command(description = "")]
-  DevSend,
 }
 
 pub async fn start(bot: Bot, mongo: Mongo) {
@@ -124,9 +124,6 @@ pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo:
       .send_message(msg.from().unwrap().id, format!("{:#?}", db::get_notifiables(&mongo).await?))
       .await
       .map(|_| ())?,
-    DevCommand::DevSend => {
-      notifier::try_notify_users(&bot, &mongo, &api::get_snapshot("Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B").await?).await?
-    }
   }
 
   Ok(())
@@ -138,28 +135,26 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
     Command::About => ctx.reply_about().await?,
     Command::ToggleNotifications => ctx.toggle_notifications().await?,
     Command::SetGroup(ref group) => ctx.set_group(group).await?,
-    Command::Today => send_single_timetable(ctx, false).await?,
-    Command::Next => send_single_timetable(ctx, true).await?,
+    Command::Today => send_single_timetable(ctx, Fetch::Today).await?,
+    Command::Next => send_single_timetable(ctx, Fetch::Next).await?,
     Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive()).await?,
     Command::DefaultNext => ctx.reply_default(get_next_day()).await?,
+    Command::Snapshot(ref uid) => send_snapshot_to_user(ctx, uid).await?,
   }
   Ok(())
 }
 
-async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
+async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
   let group = match ctx.settings().await?.group {
     Some(x) => x,
     None => return Err(BotError::NoTimetable),
   };
 
-  let snapshot = match is_next {
-    true => api::get_latest_next().await,
-    false => api::get_latest_today().await,
-  };
+  let snapshot = api::latest(fetch.clone()).await;
 
-  let date = match is_next {
-    true => get_next_day(),
-    false => utils::now(0).date_naive(),
+  let date = match fetch {
+    Fetch::Today => utils::now(0).date_naive(),
+    Fetch::Next => get_next_day(),
   };
 
   let snapshot = match snapshot {
@@ -178,6 +173,20 @@ async fn send_single_timetable(ctx: &mut MContext, is_next: bool) -> BotResult {
     }
   }
 
+  Ok(())
+}
+
+async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
+  let settings = ctx.settings().await?;
+  if uid.is_empty() || settings.group.is_none() {
+    return Err(BotError::InvalidCommandUsage(
+      "Использование: <code>/snapshot [uid]</code>. Группа при этом должна быть указана.".into(),
+    ));
+  }
+
+  let snapshot = api::snapshot(uid).await?;
+  let body = formatter::format_timetable(settings.group.unwrap().as_str(), &snapshot)?;
+  ctx.reply(body).await?;
   Ok(())
 }
 
