@@ -53,7 +53,6 @@ pub async fn poll() -> Result<Poll, ApiError> {
 }
 
 async fn get<T: AsRef<str>, O: DeserializeOwned>(url: T) -> Result<O, ApiError> {
-  info!("GET {}", url.as_ref());
   let res = reqwest::get(url.as_ref()).await?;
   match res.status() {
     StatusCode::OK => Ok(res.json().await?),

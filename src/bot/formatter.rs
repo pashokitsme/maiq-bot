@@ -29,7 +29,7 @@ pub fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBody
 pub fn display_default(default: DefaultGroup, date: NaiveDate) -> String {
   let mut res =
     format!("Стандартное расписание <code>{}</code> на <code>{}</code>", default.name, map_weekday_to_str(date.weekday()));
-  let is_week_even = date.iso_week().week() % 2 == 0;
+  let is_week_even = date.iso_week().week() % 2 != 0;
   match is_week_even {
     true => res.push_str("\nЧётная неделя\n\n"),
     false => res.push_str("\n<b>Не</b>чётная неделя\n\n"),
