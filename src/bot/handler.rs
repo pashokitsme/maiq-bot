@@ -64,23 +64,23 @@ impl MContext {
   pub async fn start_n_init(&self) -> BotResult {
     _ = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
     self
-      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\nИ звёздочек на <a href=https://github.com/pashokitsme>гитхабе</a>! 🌟\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа]</code>\nПример:\n<code>/set_group Ир3-21</code>",)
+      .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\nИ звёздочек на <a href=\"https://github.com/pashokitsme\">гитхабе</a>! 🌟\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа]</code>\nПример:\n<code>/set_group Ир3-21</code>",)
       .await?;
     Ok(())
   }
 
   pub async fn reply_about(&self) -> BotResult {
-    macro_rules! buttons_column {
+    macro_rules! url_buttons_column {
       ($(($name: literal, $url: literal)),*) => {
-        vec![$(vec![InlineKeyboardButton::url($name, Url::parse($url).unwrap()); 1]),*]
+        InlineKeyboardMarkup::new(vec![$(vec![InlineKeyboardButton::url($name, Url::parse($url).unwrap()); 1]),*])
       };
     }
 
-    let markup = InlineKeyboardMarkup::new(buttons_column!(
+    let markup = url_buttons_column!(
       ("По всем вопросам", "https://t.me/pashokitsme"),
       ("API", "https://github.com/pashokitsme/maiq-web-api"),
       ("GitHub", "https://github.com/pashokitsme")
-    ));
+    );
     let msg = format!("<b>Информация</b>\nЗаглушка :(");
     self
       .send_message(self.sender_id(), msg)
