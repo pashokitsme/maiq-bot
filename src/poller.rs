@@ -5,7 +5,7 @@ use teloxide::Bot;
 use tokio::time::sleep;
 
 use crate::{
-  api::{self, Poll},
+  api::{self, InnerPoll, Poll},
   bot::notifier,
   db::Mongo,
 };
@@ -34,19 +34,32 @@ impl Poller {
         }
       };
 
-      if self.prev.latest_today_uid != poll.latest_today_uid && poll.latest_today_uid.is_some() {
-        self.notify(poll.latest_today_uid.as_ref().unwrap().as_str()).await;
+      if self.is_notify_needed(self.prev.today.as_ref(), poll.today.as_ref()) {
+        self
+          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref())
+          .await;
       }
 
-      if self.prev.latest_next_uid != poll.latest_next_uid && poll.latest_next_uid.is_some() {
-        self.notify(poll.latest_next_uid.as_ref().unwrap().as_str()).await;
+      if self.is_notify_needed(self.prev.next.as_ref(), poll.next.as_ref()) {
+        self
+          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref())
+          .await;
       }
 
       self.prev = poll;
     }
   }
 
-  async fn notify<'a>(&self, uid: &'a str) {
+  fn is_notify_needed(&self, prev: Option<&InnerPoll>, poll: Option<&InnerPoll>) -> bool {
+    match (prev, poll) {
+      (None, None) => false,
+      (None, Some(_)) => true,
+      (Some(_), None) => false,
+      (Some(a), Some(b)) => a.uid != b.uid,
+    }
+  }
+
+  async fn notify<'a>(&self, uid: &'a str, prev: &Option<&InnerPoll>) {
     info!("Trying to send snapshot {} to users", uid);
     let snapshot = match api::snapshot(uid).await {
       Ok(s) => s,
@@ -56,7 +69,7 @@ impl Poller {
       }
     };
 
-    if let Err(err) = notifier::try_notify_users(&self.bot, &self.mongo, &snapshot).await {
+    if let Err(err) = notifier::try_notify_users(&self.bot, &self.mongo, prev, &snapshot).await {
       error!("An error occured while notifying users: {}", err);
     }
   }

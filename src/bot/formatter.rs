@@ -6,16 +6,26 @@ use maiq_shared::{
   utils, Group, Lesson, Snapshot,
 };
 
-use crate::error::BotError;
+use crate::{api::InnerPoll, error::BotError};
 
 use super::BotBodyResult;
 
 /// Group = Message Body
-pub fn separate_to_groups(snapshot: &Snapshot) -> HashMap<String, String> {
+pub fn separate_to_groups(snapshot: &Snapshot, prev: &Option<&InnerPoll>) -> HashMap<String, String> {
   snapshot
     .groups
     .iter()
-    .map(|g| (g.name.clone(), display_group(&g, &snapshot.uid, snapshot.date)))
+    .filter_map(|g| {
+      if let Some(prev) = prev {
+        if let Some(prev_uid) = prev.groups.get(&g.name) {
+          if prev_uid.as_str() == g.uid.as_str() {
+            return None;
+          }
+        }
+        return Some((g.name.clone(), display_group(&g, &snapshot.uid, snapshot.date)));
+      }
+      None
+    })
     .collect::<HashMap<String, String>>()
 }
 

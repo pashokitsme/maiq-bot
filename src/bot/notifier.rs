@@ -10,14 +10,15 @@ use teloxide::{
 use tokio::task::JoinSet;
 
 use crate::{
+  api::InnerPoll,
   db::{self, Mongo},
   error::BotError,
 };
 
 use super::formatter;
 
-pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, snapshot: &Snapshot) -> Result<(), BotError> {
-  let timetables = formatter::separate_to_groups(snapshot);
+pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll>, snapshot: &Snapshot) -> Result<(), BotError> {
+  let timetables = formatter::separate_to_groups(snapshot, prev);
   let notifiables = db::get_notifiables(&mongo).await?;
 
   let mut set: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();

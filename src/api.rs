@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc, Weekday};
 use maiq_shared::{default::DefaultGroup, Fetch, Snapshot};
 use reqwest::StatusCode;
@@ -18,12 +20,18 @@ pub struct ApiError {
   pub desc: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
 pub struct Poll {
+  pub today: Option<InnerPoll>,
+  pub next: Option<InnerPoll>,
   pub last_update: DateTime<Utc>,
   pub next_update: DateTime<Utc>,
-  pub latest_today_uid: Option<String>,
-  pub latest_next_uid: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct InnerPoll {
+  pub uid: String,
+  pub groups: HashMap<String, String>,
 }
 
 impl From<reqwest::Error> for ApiError {
