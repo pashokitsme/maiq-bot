@@ -45,9 +45,20 @@ pub fn display_default(default: DefaultGroup, date: NaiveDate) -> String {
 
 pub fn display_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> String {
   let mut res = match date == utils::now_date(0) {
-    true => format!("Расписание <b>{}</b> на <code>сегодня</code>\n[{}]\n\n", group.name, snapshot_uid),
+    true => format!(
+      "Расписание <b>{}</b> на <code>сегодня</code>, <code>{}</code>\n[<code>{}</code>]\n\n",
+      group.name,
+      map_weekday_to_str(date.date_naive().weekday()),
+      snapshot_uid
+    ),
     false => {
-      format!("Расписание <b>{}</b> на <code>{}</code>\n[<code>{}</code>]\n\n", group.name, date.format("%d.%m.%Y"), snapshot_uid)
+      format!(
+        "Расписание <b>{}</b> на <code>{}</code>, <code>{}</code>\n[<code>{}</code>]\n\n",
+        group.name,
+        date.format("%d.%m.%Y"),
+        map_weekday_to_str(date.date_naive().weekday()),
+        snapshot_uid
+      )
     }
   };
   group.lessons.iter().for_each(|l| res.push_str(&display_lesson(&l)));
