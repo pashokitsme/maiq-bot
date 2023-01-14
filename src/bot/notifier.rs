@@ -1,5 +1,6 @@
 use std::future::IntoFuture;
 
+use chrono::Datelike;
 use maiq_shared::Snapshot;
 use teloxide::{
   payloads::SendMessageSetters,
@@ -10,8 +11,8 @@ use teloxide::{
 use tokio::task::JoinSet;
 
 use crate::{
-  api::InnerPoll,
-  db::{self, Mongo},
+  api::{self, InnerPoll},
+  db::{self, Mongo, Notifiable},
   error::BotError,
 };
 
@@ -24,11 +25,7 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
   let mut handles: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
 
   for noty in notifiables {
-    let body = timetables
-      .get(&noty.group)
-      .map_or(BotError::NoTimetableExpanded { group: noty.group.clone(), snapshot_uid: snapshot.uid.clone() }.to_string(), |x| {
-        x.clone()
-      });
+    let body = get_body(&noty).await;
 
     for id in noty.user_ids {
       handles.spawn(
@@ -45,6 +42,15 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
     let res = res.or_else(|e| Err(BotError::Custom(e.to_string())))?;
     if let Err(err) = res {
       warn!("Error occured while notifying users: {}", err)
+    }
+  }
+
+  async fn get_body(noty: &Notifiable) -> String {
+    match timetables.get(&noty.group) {
+      Some(body) => body,
+      None => {
+        api::get_default(&noty.group, snapshot.date.weekday()).await;
+      }
     }
   }
 
