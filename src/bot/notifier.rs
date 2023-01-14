@@ -21,7 +21,7 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
   let timetables = formatter::separate_to_groups(snapshot, prev);
   let notifiables = db::get_notifiables(&mongo).await?;
 
-  let mut set: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
+  let mut handles: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
 
   for noty in notifiables {
     let body = timetables
@@ -31,7 +31,7 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
       });
 
     for id in noty.user_ids {
-      set.spawn(
+      handles.spawn(
         bot
           .send_message(ChatId(id), &body)
           .parse_mode(ParseMode::Html)
@@ -40,8 +40,8 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
     }
   }
 
-  info!("Sending messages to {} users..", set.len());
-  while let Some(res) = set.join_next().await {
+  info!("Sending messages to {} users..", handles.len());
+  while let Some(res) = handles.join_next().await {
     let res = res.or_else(|e| Err(BotError::Custom(e.to_string())))?;
     if let Err(err) = res {
       warn!("Error occured while notifying users: {}", err)

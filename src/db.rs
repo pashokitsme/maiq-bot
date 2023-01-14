@@ -53,8 +53,8 @@ pub async fn get_user_settings(db: &Mongo, id: i64) -> Result<Option<UserSetting
 pub async fn get_or_create_user_settings(db: &Mongo, id: i64) -> Result<UserSettings, MongoError> {
   let users = user_settings_models(&db);
   match users.find_one(doc! { "id": id }, None).await? {
-    Some(user) => return Ok(user),
-    None => return Ok(new_user_settings(&db, id).await?),
+    Some(user) => Ok(user),
+    None => Ok(new_user_settings(&db, id).await?),
   }
 }
 
