@@ -12,21 +12,20 @@ use super::BotBodyResult;
 
 /// Group = Message Body
 pub fn separate_to_groups(snapshot: &Snapshot, prev: &Option<&InnerPoll>) -> HashMap<String, String> {
-  snapshot
+  let messages = snapshot
     .groups
     .iter()
-    .filter_map(|g| {
-      if let Some(prev) = prev {
-        if let Some(prev_uid) = prev.groups.get(&g.name) {
-          if prev_uid.as_str() == g.uid.as_str() {
-            return None;
-          }
-        }
-        return Some((g.name.clone(), display_group(&g, &snapshot.uid, snapshot.date)));
-      }
-      None
+    .filter(|g| match prev {
+      Some(ref prev) => match prev.groups.get(&g.name) {
+        Some(p_uid) => p_uid.as_str() != g.uid.as_str(),
+        None => true,
+      },
+      None => true,
     })
-    .collect::<HashMap<String, String>>()
+    .map(|g| (g.name.clone(), display_group(&g, &snapshot.uid, snapshot.date)))
+    .collect::<HashMap<String, String>>();
+  info!("Sending to groups: {:?}", messages.keys());
+  messages
 }
 
 pub fn format_timetable<'g>(group_name: &'g str, snapshot: &Snapshot) -> BotBodyResult {
