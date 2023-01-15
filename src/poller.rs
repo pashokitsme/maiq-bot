@@ -29,6 +29,7 @@ impl Poller {
 
       if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
         info!("Skipping due to the night");
+        sleep(Duration::from_secs(6 * 60 * 60)).await;
         continue;
       }
 
