@@ -28,8 +28,9 @@ impl Poller {
       self.wait().await;
 
       if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
-        info!("Skipping due to the night");
-        sleep(Duration::from_secs(6 * 60 * 60)).await;
+        let time = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp());
+        info!("Waiting due to the night for {}s", time);
+        sleep(Duration::from_secs(time as u64)).await;
         continue;
       }
 
