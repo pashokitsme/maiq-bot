@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use chrono::NaiveTime;
 use maiq_shared::utils;
 use teloxide::Bot;
 use tokio::time::sleep;
@@ -25,6 +26,12 @@ impl Poller {
   pub async fn run(&mut self) {
     loop {
       self.wait().await;
+
+      if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
+        info!("Skipping due to the night");
+        continue;
+      }
+
       let poll = match api::poll().await {
         Ok(p) => p,
         Err(err) => {
