@@ -33,20 +33,14 @@ pub type BotResult = Result<(), BotError>;
 #[derive(BotCommands, Clone, Debug)]
 #[command(rename_rule = "snake_case")]
 pub enum Command {
-  #[command(description = "Старт")]
-  Start,
-
-  #[command(description = "Включить/выключить уведомления")]
-  ToggleNotifications,
-
-  #[command(description = "[группа] - Изменить группу")]
-  SetGroup(String),
-
   #[command(description = "Расписание на сегодня")]
   Today,
 
   #[command(description = "Расписание на следующий день")]
   Next,
+
+  #[command(description = "Информация")]
+  About,
 
   #[command(description = "Стандартное расписание на сегодня")]
   DefaultToday,
@@ -57,8 +51,14 @@ pub enum Command {
   #[command(description = "[uid] Получить снапшот")]
   Snapshot(String),
 
-  #[command(description = "Информация")]
-  About,
+  #[command(description = "Включить/выключить уведомления")]
+  ToggleNotifications,
+
+  #[command(description = "[группа] - Изменить группу")]
+  SetGroup(String),
+
+  #[command(description = "Старт")]
+  Start,
 }
 
 #[derive(BotCommands, Clone, Debug)]
