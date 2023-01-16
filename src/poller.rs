@@ -20,6 +20,7 @@ pub struct Poller {
 impl Poller {
   pub async fn new(bot: Bot, mongo: Mongo) -> Self {
     let first_poll = api::poll().await.expect("Couldn't make a first poll");
+    info!("First poll: {:?}", first_poll);
     Self { bot, mongo, prev: first_poll }
   }
 

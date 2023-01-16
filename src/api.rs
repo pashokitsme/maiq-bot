@@ -51,7 +51,7 @@ pub async fn snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
   get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
 }
 
-pub async fn get_default<T: AsRef<str>>(group: T, weekday: Weekday) -> Result<DefaultGroup, ApiError> {
+pub async fn default<T: AsRef<str>>(group: T, weekday: Weekday) -> Result<DefaultGroup, ApiError> {
   get(format!("{}/default/{}/{}", *API_HOST, weekday, group.as_ref())).await
 }
 

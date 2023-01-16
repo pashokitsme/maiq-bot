@@ -5,32 +5,34 @@ use crate::{api, db::MongoError};
 
 #[derive(Error, Debug)]
 pub enum BotError {
-  #[error("{0}")]
-  InvalidCommandUsage(String),
+  #[error(
+    "✖️ Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>"
+  )]
+  InvalidCommandUsage { command: String, help: String, example: String },
 
-  #[error("Для твоей группы нет расписания")]
-  NoTimetable,
-
-  #[error("В снапшоте <code>{snapshot_uid}</code> нет расписания для группы <b>{group}</b>")]
-  NoTimetableExpanded { group: String, snapshot_uid: String },
-
-  #[error("Ошибка API:\n<code>{1}</code>")]
+  #[error("❗️ Ошибка API:\n<code>{1}</code>")]
   ApiError(String, String),
 
-  #[error("Ошибка MongoDB:\n<code>{0}</code>")]
+  #[error("❗️ Ошибка MongoDB:\n<code>{0}</code>")]
   MongoError(String),
 
-  #[error("Ошибка TeloxideAPI:\n<code>{0}</code>")]
+  #[error("☠️ Ошибка TeloxideAPI:\n<code>{0}</code>")]
   TeloxideApiError(teloxide::ApiError),
 
-  #[error("Ошибка TeloxideRequest:\n<code>{0}</code>")]
+  #[error("☠️ Ошибка TeloxideRequest:\n<code>{0}</code>")]
   TeloxideRequestError(teloxide::RequestError),
 
-  #[error("Ошибка InMemStorage:\n<code>{0}</code>")]
+  #[error("☠️Ошибка InMemStorage:\n<code>{0}</code>")]
   TeloxideInMemStorageError(InMemStorageError),
 
-  #[error("Ошибка: {0}")]
+  #[error("❗️ Ошибка: {0}")]
   Custom(String),
+}
+
+impl BotError {
+  pub fn invalid_command<T: Into<String>>(command: T, help: T, example: T) -> BotError {
+    BotError::InvalidCommandUsage { command: command.into(), help: help.into(), example: example.into() }
+  }
 }
 
 impl From<api::ApiError> for BotError {

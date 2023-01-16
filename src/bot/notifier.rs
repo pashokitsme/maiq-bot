@@ -1,6 +1,5 @@
-use std::{collections::HashMap, future::IntoFuture};
+use std::future::IntoFuture;
 
-use chrono::Datelike;
 use maiq_shared::Snapshot;
 use teloxide::{
   payloads::SendMessageSetters,
@@ -11,21 +10,29 @@ use teloxide::{
 use tokio::task::JoinSet;
 
 use crate::{
-  api::{self, InnerPoll},
-  db::{self, Mongo, Notifiable},
+  api::InnerPoll,
+  bot::format::{Change, SnapshotFormatter, SnapshotFormatterExt},
+  db::{self, Mongo},
   error::BotError,
 };
 
-use super::formatter;
-
 pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll>, snapshot: &Snapshot) -> Result<(), BotError> {
-  let timetables = formatter::separate_to_groups(snapshot, prev);
+  let changes = snapshot.lookup_changes(prev);
+  info!("Changes: {:?}", changes);
   let notifiables = db::get_notifiables(&mongo).await?;
 
   let mut handles: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
 
   for noty in notifiables {
-    let body = format_body(snapshot, &timetables, &noty).await;
+    match changes.get(&*noty.group) {
+      Some(kind) if *kind == Change::Nothing => continue,
+      None => continue,
+      Some(_) => (),
+    }
+
+    let body = snapshot
+      .format_or_default(&*noty.group, snapshot.date.date_naive())
+      .await;
 
     for id in noty.user_ids {
       handles.spawn(
@@ -44,24 +51,5 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
       warn!("Error occured while notifying users: {}", err)
     }
   }
-
-  async fn format_body(snapshot: &Snapshot, timetables: &HashMap<String, String>, noty: &Notifiable) -> String {
-    match timetables.get(&noty.group) {
-      Some(body) => body.clone(),
-      None => match api::get_default(&noty.group, snapshot.date.weekday()).await {
-        Ok(d) => format!(
-          "В снапшоте <code>{}</code> нет расписания для группы <b>{}</b>\n\n{}",
-          snapshot.uid,
-          noty.group,
-          formatter::display_default(d, snapshot.date.date_naive())
-        ),
-        Err(_) => format!(
-          "В снапшоте <code>{}</code> нет расписания для группы <b>{}</b>\n\nСтандартного расписания также нет 😢",
-          snapshot.uid, noty.group
-        ),
-      },
-    }
-  }
-
   Ok(())
 }

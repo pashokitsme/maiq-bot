@@ -8,7 +8,7 @@ use teloxide::{
   Bot,
 };
 
-use super::{formatter::display_default, Command};
+use super::{format::DefaultFormatter, Command};
 use crate::{
   api,
   bot::BotResult,
@@ -100,10 +100,9 @@ impl MContext {
 
   pub async fn set_group(&self, group: &String) -> BotResult {
     if group.is_empty() || group.len() > 10 {
-      return Err(BotError::InvalidCommandUsage(
-        "Использование команды:\n<code>/set_group [группа: длина &lt; 10]</code>\nПример:\n<code>/set_group Ир3-21</code>".into(),
-      ));
+      return Err(BotError::invalid_command("/set_group", "/set_group [группа: длина &lt; 10]", "/set_group Ир3-21"));
     }
+
     let mut user = self.settings().await?;
     user.group = Some(group.clone());
     user.is_notifications_enabled = true;
@@ -120,8 +119,8 @@ impl MContext {
       None => return self.reply("Ты не указал группу").await.map(|_| ()),
     };
 
-    let default = api::get_default(group, date.weekday()).await?;
-    self.reply(display_default(default, date)).await?;
+    let default = api::default(group, date.weekday()).await?;
+    self.reply(default.format(date)).await?;
     Ok(())
   }
 }

@@ -18,15 +18,17 @@ use crate::{
   error::BotError,
 };
 
-use self::handler::MContext;
+use self::{
+  format::{SnapshotFormatter, SnapshotFormatterExt},
+  handler::MContext,
+};
 
 pub mod notifier;
 
-mod formatter;
+mod format;
 mod handler;
 
 pub type BotResult = Result<(), BotError>;
-pub type BotBodyResult = Result<String, BotError>;
 
 #[derive(BotCommands, Clone, Debug)]
 #[command(rename_rule = "snake_case")]
@@ -113,6 +115,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: Mongo)
   info!("Command {:?} from {} [{}]", cmd, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);
   let mut ctx = MContext::new(bot, msg, cmd, mongo);
   if let Err(err) = try_execute_command(&mut ctx).await {
+    error!("{}", err);
     ctx.reply(err.to_string()).await?;
   }
   Ok(())
@@ -145,11 +148,7 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
 }
 
 async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
-  let group = match ctx.settings().await?.group {
-    Some(x) => x,
-    None => return Err(BotError::NoTimetable),
-  };
-
+  let group = ctx.settings().await?.group.unwrap_or("UNSET".into());
   let snapshot = api::latest(fetch.clone()).await;
 
   let date = match fetch {
@@ -165,29 +164,25 @@ async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
     }
   };
 
-  match formatter::format_timetable(group.as_str(), &snapshot) {
-    Ok(r) => _ = ctx.reply(r).await?,
-    Err(e) => {
-      ctx.reply(e.to_string()).await?;
-      return ctx.reply_default(date).await;
-    }
-  }
-
-  Ok(())
+  ctx.reply(snapshot.format_or_default(&*group, date).await).await
 }
 
 async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
   let settings = ctx.settings().await?;
   if uid.is_empty() || settings.group.is_none() {
-    return Err(BotError::InvalidCommandUsage(
-      "Использование: <code>/snapshot [uid]</code>\nГруппа при этом должна быть указана\n\nПример: <code>/snapshot m010c556zk</code>".into(),
-    ));
+    return Err(BotError::invalid_command("/snapshot", "/snapshot [uid]", "/snapshot aztc6qxcc3"));
   }
 
+  //BotError::InvalidCommandUsage(
+  //"Использование: <code>/snapshot [uid]</code>\nГруппа при этом должна быть указана\n\nПример: <code>/snapshot m010c556zk</code>".into(),
+  //)
+
   let snapshot = api::snapshot(uid).await?;
-  let body = formatter::format_timetable(settings.group.unwrap().as_str(), &snapshot)?;
-  ctx.reply(body).await?;
-  Ok(())
+  let body = match snapshot.format_group(&*settings.group.unwrap()) {
+    Ok(x) => x,
+    Err(x) => x,
+  };
+  ctx.reply(body).await
 }
 
 fn get_next_day() -> NaiveDate {
