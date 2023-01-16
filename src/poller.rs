@@ -31,7 +31,6 @@ impl Poller {
         let time = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp());
         info!("Waiting due to the night for {}s", time);
         sleep(Duration::from_secs(time as u64)).await;
-        continue;
       }
 
       let poll = match api::poll().await {
@@ -84,11 +83,15 @@ impl Poller {
   }
 
   async fn wait(&self) {
-    let wait_for = self
+    let wait_for = match self
       .prev
       .next_update
       .signed_duration_since(utils::now(0))
-      .num_milliseconds() as u64;
+      .num_milliseconds() as u64
+    {
+      x if x < 10 * 1000 || x > 24 * 60 * 60 * 1000 => 10 * 1000,
+      x => x,
+    };
     info!("Waiting for {}s for next update", wait_for as f32 / 1000f32);
     sleep(Duration::from_millis(wait_for)).await;
   }
