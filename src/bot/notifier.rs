@@ -51,5 +51,6 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
       warn!("Error occured while notifying users: {}", err)
     }
   }
+  
   Ok(())
 }
