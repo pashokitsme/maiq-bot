@@ -46,12 +46,14 @@ impl SnapshotFormatter for Snapshot {
     let prev = prev.unwrap();
     let mut result = HashMap::with_capacity(prev.groups.len());
 
+    info!("Compating snapshot {} (prev was {})", self.uid, prev.uid);
     for group in self.groups.iter() {
       let prev = prev.groups.iter().find(|g| g.0.as_str() == group.name.as_str());
       let change = match (prev, group.uid.as_str()) {
         (Some(a), b) if a.1.as_str() != b => Change::Updated,
+        (Some(a), b) if a.1.as_str() == b => Change::Nothing,
         (None, _) => Change::New,
-        (Some(_), _) => Change::Nothing,
+        (Some(_), _) => unreachable!(),
       };
       info!("Comparing: {} >> {} & {:?} >> {:?}", group.name, group.uid, prev, change);
 
