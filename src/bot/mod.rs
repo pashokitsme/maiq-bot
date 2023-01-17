@@ -173,10 +173,6 @@ async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
     return Err(BotError::invalid_command("/snapshot", "/snapshot [uid]", "/snapshot aztc6qxcc3"));
   }
 
-  //BotError::InvalidCommandUsage(
-  //"Использование: <code>/snapshot [uid]</code>\nГруппа при этом должна быть указана\n\nПример: <code>/snapshot m010c556zk</code>".into(),
-  //)
-
   let snapshot = api::snapshot(uid).await?;
   let body = match snapshot.format_group(&*settings.group.unwrap()) {
     Ok(x) => x,
