@@ -85,14 +85,10 @@ impl SnapshotFormatterExt for Snapshot {
 
 impl DefaultFormatter for DefaultGroup {
   fn format(&self, date: NaiveDate) -> String {
-    let mut res = format!("Стандартное расписание <code>{}</code> на <code>{}</code>", self.name, date.weekday_str());
-    let even = date.iso_week().week() % 2 != 0;
-    match even {
-      true => res.push_str("\nЧётная неделя\n\n"),
-      false => res.push_str("\n<b>Не</b>чётная неделя\n\n"),
-    };
+    let mut res =
+      format!("{}, {} - стандартное расписание <b>{}</b>\n\n", date.weekday_str(), date.format("%d.%m.%Y"), self.name);
     self.lessons.iter().for_each(|l| {
-      if let Some(lesson) = &format_default_lesson(&l, even) {
+      if let Some(lesson) = &format_default_lesson(&l, date.iso_week().week() % 2 != 0) {
         res.push_str(lesson)
       }
     });
@@ -117,83 +113,71 @@ pub trait NaiveDateExt {
 impl NaiveDateExt for NaiveDate {
   fn weekday_str<'a>(&self) -> &'a str {
     match self.weekday() {
-      Weekday::Mon => "понедельник",
-      Weekday::Tue => "вторник",
-      Weekday::Wed => "среду",
-      Weekday::Thu => "четверг",
-      Weekday::Fri => "пятницу",
-      Weekday::Sat => "субботу",
-      Weekday::Sun => "воскресенье",
+      Weekday::Mon => "Понедельник",
+      Weekday::Tue => "Вторник",
+      Weekday::Wed => "Среда",
+      Weekday::Thu => "Четверг",
+      Weekday::Fri => "Пятница",
+      Weekday::Sat => "Суббота",
+      Weekday::Sun => "Воскресенье",
     }
   }
 }
 
 fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> String {
   let mut res = match date == utils::now_date(0) {
-    true => format!(
-      "Расписание <b>{}</b> на <code>сегодня</code>, <code>{}</code>\n[<code>{}</code>]\n\n",
-      group.name,
-      date.date_naive().weekday_str(),
-      snapshot_uid
-    ),
-    false => {
-      format!(
-        "Расписание <b>{}</b> на <code>{}</code>, <code>{}</code>\n[<code>{}</code>]\n\n",
-        group.name,
-        date.format("%d.%m.%Y"),
-        date.date_naive().weekday_str(),
-        snapshot_uid
-      )
-    }
+    true => format!("Сегодня [<code>{}</code>]\n\n", snapshot_uid),
+    false => format!("{}, {} [<code>{}</code>]\n\n", date.date_naive().weekday_str(), date.format("%d.%m.%Y"), snapshot_uid),
   };
-  group
-    .lessons
-    .iter()
-    .for_each(|l| res.push_str(&format_lesson_internal(&l)));
+  group.lessons.iter().for_each(|l| res.push_str(&format_lesson(&l)));
   res
 }
 
-fn format_lesson_internal(lesson: &Lesson) -> String {
-  let mut res = format!("({}", lesson.num);
-  res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("{}, {})", res, classroom),
-    None => return format!("{}) <b>{}</b>\n\n", res, lesson.name),
+fn format_lesson(lesson: &Lesson) -> String {
+  let mut res = match lesson.classroom.as_ref() {
+    Some(classroom) => format!("[{}]    <b>#{}</b> {}", random_delimiter(), lesson.num, classroom),
+    None => return "".into(), // format!("{}) <b>{}</b>\n\n", res, lesson.name),
   };
   res = match lesson.subgroup {
-    Some(sub) => format!("{} (п. {})", res, sub),
+    Some(sub) => format!("{} · п. {}", res, sub),
     None => res,
   };
-  res = match lesson.teacher.as_ref() {
-    Some(teacher) => format!("{} {}", res, teacher),
-    None => res,
-  };
-  res = format!("{}\n<b>{}</b>\n\n", res, lesson.name);
+  res = format!("{}<b> · {}</b>\n", res, lesson.name);
 
   res
+}
+
+const DELIMITERS: [&str; 17] =
+  ["🍕", "🥩", "🥝", "🌵", "🥞", "🧀", "🍖", "🍌", "🌮", "🍫", "🧃", "🍒", "🍓", "🍆", "🥕", "🐷", "🍺"];
+
+fn random_delimiter<'a>() -> &'a str {
+  DELIMITERS[fastrand::usize(0..DELIMITERS.len())]
 }
 
 fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<String> {
   let mut res = match lesson.is_even {
     Some(even) => match even == is_even_week {
-      true => format!("({}", lesson.num),
+      true => format!("[{}]    <b>#{}</b>", random_delimiter(), lesson.num),
       false => return None,
     },
-    None => format!("({}", lesson.num),
+    None => format!("[{}]    <b>#{}</b>", random_delimiter(), lesson.num),
   };
 
   res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("{}, {})", res, classroom),
-    None => return Some(format!("{}) <b>{}</b>\n\n", res, lesson.name)),
+    Some(classroom) => format!("{} {}", res, classroom),
+    None => return Some(format!("{}<b> · {}</b>", res, lesson.name)),
   };
   res = match lesson.subgroup {
-    Some(sub) => format!("{} (п. {})", res, sub),
+    Some(sub) => format!("{} · п. {}", res, sub),
     None => res,
   };
-  res = match lesson.teacher.as_ref() {
-    Some(teacher) => format!("{} {}", res, teacher),
-    None => res,
-  };
-  res = format!("{}\n<b>{}</b>\n\n", res, lesson.name);
 
+  res = format!("{}<b> · {}</b>", res, lesson.name);
+  res = match lesson.teacher.as_ref() {
+    Some(t) => format!("{} · {}", res, t),
+    None => res,
+  };
+
+  res.push('\n');
   Some(res)
 }
