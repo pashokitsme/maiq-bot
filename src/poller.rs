@@ -69,7 +69,6 @@ impl Poller {
   }
 
   async fn notify<'a>(&self, uid: &'a str, prev: &Option<&InnerPoll>) {
-    info!("Trying to send snapshot {} to users", uid);
     let snapshot = match api::snapshot(uid).await {
       Ok(s) => s,
       Err(err) => {
