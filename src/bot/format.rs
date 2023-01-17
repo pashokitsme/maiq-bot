@@ -135,8 +135,8 @@ fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> St
 
 fn format_lesson(lesson: &Lesson) -> String {
   let mut res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("[{}]    <b>#{}</b> {}", random_delimiter(), lesson.num, classroom),
-    None => return "".into(), // format!("{}) <b>{}</b>\n\n", res, lesson.name),
+    Some(classroom) => format!("[{}]    <b>#{}</b> {}", random_emoji(), lesson.num, classroom),
+    None => return format!("[{}]    <b>#{}</b> {}\n", random_emoji(), lesson.num, lesson.name),
   };
   res = match lesson.subgroup {
     Some(sub) => format!("{} · п. {}", res, sub),
@@ -147,20 +147,20 @@ fn format_lesson(lesson: &Lesson) -> String {
   res
 }
 
-const DELIMITERS: [&str; 17] =
-  ["🍕", "🥩", "🥝", "🌵", "🥞", "🧀", "🍖", "🍌", "🌮", "🍫", "🧃", "🍒", "🍓", "🍆", "🥕", "🐷", "🍺"];
+const EMOJIES: [&str; 19] =
+  ["🍕", "🥩", "🥝", "🌵", "🥞", "🧀", "🍖", "🍌", "🌮", "🍫", "🧃", "🍒", "🍓", "🍆", "🥕", "🐷", "🍺", "🍪", "🍁"];
 
-fn random_delimiter<'a>() -> &'a str {
-  DELIMITERS[fastrand::usize(0..DELIMITERS.len())]
+fn random_emoji<'a>() -> &'a str {
+  EMOJIES[fastrand::usize(0..EMOJIES.len())]
 }
 
 fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<String> {
   let mut res = match lesson.is_even {
     Some(even) => match even == is_even_week {
-      true => format!("[{}]    <b>#{}</b>", random_delimiter(), lesson.num),
+      true => format!("[{}]    <b>#{}</b>", random_emoji(), lesson.num),
       false => return None,
     },
-    None => format!("[{}]    <b>#{}</b>", random_delimiter(), lesson.num),
+    None => format!("[{}]    <b>#{}</b>", random_emoji(), lesson.num),
   };
 
   res = match lesson.classroom.as_ref() {

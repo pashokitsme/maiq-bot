@@ -5,9 +5,7 @@ use crate::{api, db::MongoError};
 
 #[derive(Error, Debug)]
 pub enum BotError {
-  #[error(
-    "✖️ Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>"
-  )]
+  #[error("✖️ Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>")]
   InvalidCommandUsage { command: String, help: String, example: String },
 
   #[error("❗️ Ошибка API:\n<code>{1}</code>")]
@@ -22,7 +20,7 @@ pub enum BotError {
   #[error("☠️ Ошибка TeloxideRequest:\n<code>{0}</code>")]
   TeloxideRequestError(teloxide::RequestError),
 
-  #[error("☠️Ошибка InMemStorage:\n<code>{0}</code>")]
+  #[error("☠️ Ошибка InMemStorage:\n<code>{0}</code>")]
   TeloxideInMemStorageError(InMemStorageError),
 
   #[error("❗️ Ошибка: {0}")]
