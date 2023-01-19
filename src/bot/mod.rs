@@ -11,12 +11,7 @@ use teloxide::{
   Bot,
 };
 
-use crate::{
-  api,
-  db::{self, Mongo},
-  env,
-  error::BotError,
-};
+use crate::{api, db::MongoPool, env, error::BotError};
 
 use self::{
   format::{SnapshotFormatter, SnapshotFormatterExt},
@@ -68,7 +63,7 @@ pub enum DevCommand {
   DevNotifiables,
 }
 
-pub async fn start(bot: Bot, mongo: Mongo) {
+pub async fn start(bot: Bot, pool: MongoPool) {
   bot
     .set_my_commands(Command::bot_commands())
     .await
@@ -90,7 +85,7 @@ pub async fn start(bot: Bot, mongo: Mongo) {
   info!("Logged in as {} [@{}]", me.full_name(), me.username());
   info!("Started");
   Dispatcher::builder(bot, handler)
-    .dependencies(dp::deps![mongo])
+    .dependencies(dp::deps![pool])
     .enable_ctrlc_handler()
     .build()
     .dispatch()
@@ -111,7 +106,7 @@ async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotErr
 }
 */
 
-pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: Mongo) -> BotResult {
+pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: MongoPool) -> BotResult {
   info!("Command {:?} from {} [{}]", cmd, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);
   let mut ctx = MContext::new(bot, msg, cmd, mongo);
   if let Err(err) = try_execute_command(&mut ctx).await {
@@ -121,10 +116,10 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: Mongo)
   Ok(())
 }
 
-pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo: Mongo) -> BotResult {
+pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo: MongoPool) -> BotResult {
   match cmd {
     DevCommand::DevNotifiables => bot
-      .send_message(msg.from().unwrap().id, format!("{:#?}", db::get_notifiables(&mongo).await?))
+      .send_message(msg.from().unwrap().id, format!("{:#?}", mongo.notifiables().await?))
       .await
       .map(|_| ())?,
   }
@@ -148,7 +143,12 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
 }
 
 async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
-  let group = ctx.settings().await?.group.unwrap_or("UNSET".into());
+  let group = ctx
+    .mongo
+    .get_or_new(ctx.sender_id_i64())
+    .await?
+    .group
+    .unwrap_or("UNSET".into());
   let snapshot = api::latest(fetch.clone()).await;
 
   let date = match fetch {
@@ -168,7 +168,7 @@ async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
 }
 
 async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
-  let settings = ctx.settings().await?;
+  let settings = ctx.mongo.get_or_new(ctx.sender_id_i64()).await?;
   if uid.is_empty() || settings.group.is_none() {
     return Err(BotError::invalid_command("/snapshot", "/snapshot [uid]", "/snapshot aztc6qxcc3"));
   }

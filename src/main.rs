@@ -20,7 +20,7 @@ async fn main() {
   pretty_env_logger::init();
   env::check_env_vars();
 
-  let mongo = db::init().await.expect("Couldn't connect to database");
+  let mongo = db::MongoPool::init().await.expect("Couldn't connect to database");
   let bot = Bot::from_env();
 
   let bot_ref = bot.clone();

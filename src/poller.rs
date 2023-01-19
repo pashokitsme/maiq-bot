@@ -8,17 +8,17 @@ use tokio::time::sleep;
 use crate::{
   api::{self, InnerPoll, Poll},
   bot::notifier,
-  db::Mongo,
+  db::MongoPool,
 };
 
 pub struct Poller {
   bot: Bot,
-  mongo: Mongo,
+  mongo: MongoPool,
   prev: Poll,
 }
 
 impl Poller {
-  pub async fn new(bot: Bot, mongo: Mongo) -> Self {
+  pub async fn new(bot: Bot, mongo: MongoPool) -> Self {
     let first_poll = api::poll().await.expect("Couldn't make a first poll");
     info!("First poll: {:?}", first_poll);
     Self { bot, mongo, prev: first_poll }

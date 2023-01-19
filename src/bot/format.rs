@@ -46,7 +46,6 @@ impl SnapshotFormatter for Snapshot {
     let prev = prev.unwrap();
     let mut result = HashMap::with_capacity(prev.groups.len());
 
-    info!("Comparing snapshot {} (prev was {})", self.uid, prev.uid);
     for group in self.groups.iter() {
       let prev = prev.groups.iter().find(|g| g.0.as_str() == group.name.as_str());
       let change = match (prev, group.uid.as_str()) {
@@ -55,7 +54,6 @@ impl SnapshotFormatter for Snapshot {
         (None, _) => Change::New,
         (Some(_), _) => unreachable!(),
       };
-      info!("Comparing: {} >> {} & {:?} >> {:?}", group.name, group.uid, prev, change);
 
       result.insert(group.name.as_str(), change);
     }
@@ -72,10 +70,7 @@ impl SnapshotFormatterExt for Snapshot {
       return x;
     }
 
-    let default = match api::default(name, date.weekday()).await {
-      Ok(x) => x.format(date),
-      Err(_) => format!("✖️ Нет стандартного расписания для группы <b>{}</b>, <code>{}</code>", name, date),
-    };
+    let default = api::default(name, date.weekday()).await.format(date);
     match self.format_group(name) {
       Ok(x) => x,
       Err(x) => format!("{}\n\n{}", x, default),
@@ -126,7 +121,7 @@ impl NaiveDateExt for NaiveDate {
 
 fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> String {
   let mut res = match date == utils::now_date(0) {
-    true => format!("Сегодня [<code>{}</code>]\n\n", snapshot_uid),
+    true => format!("Сегодня, {} [<code>{}</code>]\n\n", date.format("%d.%m.%Y"), snapshot_uid),
     false => format!("{}, {} [<code>{}</code>]\n\n", date.date_naive().weekday_str(), date.format("%d.%m.%Y"), snapshot_uid),
   };
   group.lessons.iter().for_each(|l| res.push_str(&format_lesson(&l)));
@@ -135,8 +130,8 @@ fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> St
 
 fn format_lesson(lesson: &Lesson) -> String {
   let mut res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("[{}]    <b>#{}</b> {}", random_emoji(), lesson.num, classroom),
-    None => return format!("[{}]    <b>#{}</b> {}\n", random_emoji(), lesson.num, lesson.name),
+    Some(classroom) => format!("{}    <b>#{}</b> {}", random_emoji(), lesson.num, classroom),
+    None => return format!("{}    <b>#{}</b> {}\n", random_emoji(), lesson.num, lesson.name),
   };
   res = match lesson.subgroup {
     Some(sub) => format!("{} · п. {}", res, sub),
@@ -147,8 +142,8 @@ fn format_lesson(lesson: &Lesson) -> String {
   res
 }
 
-const EMOJIES: [&str; 19] =
-  ["🍕", "🥩", "🥝", "🌵", "🥞", "🧀", "🍖", "🍌", "🌮", "🍫", "🧃", "🍒", "🍓", "🍆", "🥕", "🐷", "🍺", "🍪", "🍁"];
+const EMOJIES: [&str; 21] =
+  ["🥭", "🥩", "🥝", "🌵", "🥞", "🧀", "🍖", "🍌", "🍍", "🥓", "🧃", "🍒", "🍓", "🍆", "🥕", "🐷", "🍺", "🍪", "🍁", "🍉", "🍋"];
 
 fn random_emoji<'a>() -> &'a str {
   EMOJIES[fastrand::usize(0..EMOJIES.len())]
@@ -157,10 +152,10 @@ fn random_emoji<'a>() -> &'a str {
 fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<String> {
   let mut res = match lesson.is_even {
     Some(even) => match even == is_even_week {
-      true => format!("[{}]    <b>#{}</b>", random_emoji(), lesson.num),
+      true => format!("{}    <b>#{}</b>", random_emoji(), lesson.num),
       false => return None,
     },
-    None => format!("[{}]    <b>#{}</b>", random_emoji(), lesson.num),
+    None => format!("{}    <b>#{}</b>", random_emoji(), lesson.num),
   };
 
   res = match lesson.classroom.as_ref() {

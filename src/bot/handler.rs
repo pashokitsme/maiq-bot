@@ -9,12 +9,7 @@ use teloxide::{
 };
 
 use super::{format::DefaultFormatter, Command};
-use crate::{
-  api,
-  bot::BotResult,
-  db::{self, Mongo, UserSettings},
-  error::BotError,
-};
+use crate::{api, bot::BotResult, db::MongoPool, error::BotError};
 
 // todo: (?) make it injectable
 /// M`essage` handler context
@@ -23,7 +18,7 @@ pub struct MContext {
   pub msg: Message,
   pub user: User,
   pub used_command: Command,
-  pub mongo: Mongo,
+  pub mongo: MongoPool,
 }
 
 impl Deref for MContext {
@@ -35,7 +30,7 @@ impl Deref for MContext {
 }
 
 impl MContext {
-  pub fn new(bot: Bot, msg: Message, cmd: Command, mongo: Mongo) -> Self {
+  pub fn new(bot: Bot, msg: Message, cmd: Command, mongo: MongoPool) -> Self {
     Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo }
   }
 
@@ -57,12 +52,8 @@ impl MContext {
     Ok(())
   }
 
-  pub async fn settings(&self) -> Result<UserSettings, mongodb::error::Error> {
-    db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await
-  }
-
   pub async fn start_n_init(&self) -> BotResult {
-    _ = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
+    _ = self.mongo.get_or_new(self.sender_id_i64()).await?;
     self
       .reply("Привет. Это что-то типо беты. По всем вопросам/багам/предложениям <a href=\"https://t.me/pashokitsme\">сюда</a>.\n\nКстати, в поиске хостинга.\nИ в ожидании звёздочек на <a href=\"https://github.com/pashokitsme\">гитхабе</a>! 🌟\n\nДля начала тебе нужно установить свою группу:\n<code>/set_group [группа]</code>\nПример:\n<code>/set_group Ир3-21</code>",)
       .await?;
@@ -91,9 +82,9 @@ impl MContext {
   }
 
   pub async fn toggle_notifications(&self) -> BotResult {
-    let mut user = db::get_or_create_user_settings(&self.mongo, self.sender_id_i64()).await?;
+    let mut user = self.mongo.get_or_new(self.sender_id_i64()).await?;
     user.is_notifications_enabled = !user.is_notifications_enabled;
-    db::update_user_settings(&self.mongo, &user).await?;
+    self.mongo.update(&user).await?;
     self.reply(format!("{}", user.is_notifications_enabled)).await?;
     Ok(())
   }
@@ -103,10 +94,10 @@ impl MContext {
       return Err(BotError::invalid_command("/set_group", "/set_group [группа: длина &lt; 10]", "/set_group Ир3-21"));
     }
 
-    let mut user = self.settings().await?;
+    let mut user = self.mongo.get_or_new(self.sender_id_i64()).await?;
     user.group = Some(group.clone());
     user.is_notifications_enabled = true;
-    db::update_user_settings(&self.mongo, &user).await?;
+    self.mongo.update(&user).await?;
     self
       .reply(format!("Теперь твоя группа: <code>{}</code>", user.group.unwrap()))
       .await?;
@@ -114,13 +105,14 @@ impl MContext {
   }
 
   pub async fn reply_default(&self, date: NaiveDate) -> BotResult {
-    let group = match self.settings().await?.group {
+    let group = match self.mongo.get_or_new(self.sender_id_i64()).await?.group {
       Some(g) => g,
       None => return self.reply("Ты не указал группу").await.map(|_| ()),
     };
 
-    let default = api::default(group, date.weekday()).await?;
-    self.reply(default.format(date)).await?;
+    self
+      .reply(api::default(group, date.weekday()).await.format(date))
+      .await?;
     Ok(())
   }
 }

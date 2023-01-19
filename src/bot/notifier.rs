@@ -12,14 +12,19 @@ use tokio::task::JoinSet;
 use crate::{
   api::InnerPoll,
   bot::format::{Change, SnapshotFormatter, SnapshotFormatterExt},
-  db::{self, Mongo},
+  db::MongoPool,
   error::BotError,
 };
 
-pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll>, snapshot: &Snapshot) -> Result<(), BotError> {
+pub async fn try_notify_users(
+  bot: &Bot,
+  mongo: &MongoPool,
+  prev: &Option<&InnerPoll>,
+  snapshot: &Snapshot,
+) -> Result<(), BotError> {
   let changes = snapshot.lookup_changes(prev);
   info!("Changes: {:?}", changes);
-  let notifiables = db::get_notifiables(&mongo).await?;
+  let notifiables = mongo.notifiables().await?;
 
   let mut handles: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
 
@@ -51,6 +56,6 @@ pub async fn try_notify_users(bot: &Bot, mongo: &Mongo, prev: &Option<&InnerPoll
       warn!("Error occured while notifying users: {}", err)
     }
   }
-  
+
   Ok(())
 }
