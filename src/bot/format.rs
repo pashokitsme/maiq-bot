@@ -130,11 +130,11 @@ fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> St
 
 fn format_lesson(lesson: &Lesson) -> String {
   let mut res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("{}    <b>#{}</b> {}", random_emoji(), lesson.num, classroom),
-    None => return format!("{}    <b>#{}</b> {}\n", random_emoji(), lesson.num, lesson.name),
+    Some(classroom) => format!("{} <b>#{}</b> {}", random_emoji(), lesson.num, classroom),
+    None => return format!("{} <b>#{}</b> {}\n", random_emoji(), lesson.num, lesson.name),
   };
   res = match lesson.subgroup {
-    Some(sub) => format!("{} · п. {}", res, sub),
+    Some(sub) => format!("{} · п/г {}", res, sub),
     None => res,
   };
   res = format!("{}<b> · {}</b>\n", res, lesson.name);
@@ -152,10 +152,10 @@ fn random_emoji<'a>() -> &'a str {
 fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<String> {
   let mut res = match lesson.is_even {
     Some(even) => match even == is_even_week {
-      true => format!("{}    <b>#{}</b>", random_emoji(), lesson.num),
+      true => format!("{} <b>#{}</b>", random_emoji(), lesson.num),
       false => return None,
     },
-    None => format!("{}    <b>#{}</b>", random_emoji(), lesson.num),
+    None => format!("{} <b>#{}</b>", random_emoji(), lesson.num),
   };
 
   res = match lesson.classroom.as_ref() {
@@ -163,7 +163,7 @@ fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<S
     None => return Some(format!("{}<b> · {}</b>", res, lesson.name)),
   };
   res = match lesson.subgroup {
-    Some(sub) => format!("{} · п. {}", res, sub),
+    Some(sub) => format!("{} · п/г {}", res, sub),
     None => res,
   };
 
