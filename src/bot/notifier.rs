@@ -5,7 +5,7 @@ use teloxide::{
   payloads::SendMessageSetters,
   requests::Requester,
   types::{ChatId, ParseMode},
-  Bot, RequestError,
+  Bot,
 };
 use tokio::task::JoinSet;
 
@@ -16,17 +16,18 @@ use crate::{
   error::BotError,
 };
 
-pub async fn try_notify_users(
+pub async fn notify_users(
   bot: &Bot,
   mongo: &MongoPool,
   prev: &Option<&InnerPoll>,
   snapshot: &Snapshot,
+  silent: bool,
 ) -> Result<(), BotError> {
   let changes = snapshot.lookup_changes(prev);
   info!("Changes: {:?}", changes);
   let notifiables = mongo.notifiables().await?;
 
-  let mut handles: JoinSet<Result<teloxide::prelude::Message, RequestError>> = JoinSet::new();
+  let mut handles = JoinSet::new();
 
   for noty in notifiables {
     match changes.get(&*noty.group) {
@@ -44,6 +45,7 @@ pub async fn try_notify_users(
         bot
           .send_message(ChatId(id), &body)
           .parse_mode(ParseMode::Html)
+          .disable_notification(silent)
           .into_future(),
       );
     }
