@@ -26,7 +26,13 @@ impl Poller {
 
   pub async fn run(&mut self) {
     loop {
-      let is_should_be_silent = self.wait().await;
+      self.wait().await;
+      let is_night = utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+      if is_night {
+        let wait_s = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp()) as u64;
+        info!("Sleeping due to the night for {}s", wait_s);
+        sleep(Duration::from_secs(wait_s)).await;
+      }
 
       let poll = match api::poll().await {
         Ok(p) => p,
@@ -39,13 +45,13 @@ impl Poller {
 
       if self.is_notify_needed(self.prev.today.as_ref(), poll.today.as_ref()) {
         self
-          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref(), is_should_be_silent)
+          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref(), is_night)
           .await;
       }
 
       if self.is_notify_needed(self.prev.next.as_ref(), poll.next.as_ref()) {
         self
-          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref(), is_should_be_silent)
+          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref(), is_night)
           .await;
       }
 
@@ -76,22 +82,17 @@ impl Poller {
     }
   }
 
-  async fn wait(&self) -> bool {
+  async fn wait(&self) {
     let now = utils::now(0);
-    let is_night = now.time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap();
 
-    let wait = match !is_night {
-      true => self
-        .prev
-        .next_update
-        .signed_duration_since(now)
-        .num_milliseconds()
-        .clamp(1000 * 10, 1000 * 24 * 60 * 60),
-      false => 6 * 60 * 60 - (now.timestamp() - utils::now_date(0).timestamp()),
-    } as u64;
+    let wait = self
+      .prev
+      .next_update
+      .signed_duration_since(now)
+      .num_milliseconds()
+      .clamp(1000 * 10, 1000 * 24 * 60 * 60) as u64;
 
     info!("Sleeping for {}s in awaiting of next update", wait as f32 / 1000f32);
     sleep(Duration::from_millis(wait)).await;
-    is_night
   }
 }
