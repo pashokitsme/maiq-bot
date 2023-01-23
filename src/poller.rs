@@ -26,16 +26,7 @@ impl Poller {
 
   pub async fn run(&mut self) {
     loop {
-      self.wait().await;
-
-      let silent = if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
-        let time = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp());
-        info!("Waiting due to the night for {}s", time);
-        sleep(Duration::from_secs(time as u64)).await;
-        true
-      } else {
-        false
-      };
+      let is_should_be_silent = self.wait().await;
 
       let poll = match api::poll().await {
         Ok(p) => p,
@@ -48,13 +39,13 @@ impl Poller {
 
       if self.is_notify_needed(self.prev.today.as_ref(), poll.today.as_ref()) {
         self
-          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref(), silent)
+          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref(), is_should_be_silent)
           .await;
       }
 
       if self.is_notify_needed(self.prev.next.as_ref(), poll.next.as_ref()) {
         self
-          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref(), silent)
+          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref(), is_should_be_silent)
           .await;
       }
 
@@ -85,17 +76,22 @@ impl Poller {
     }
   }
 
-  async fn wait(&self) {
-    let wait_for = match self
-      .prev
-      .next_update
-      .signed_duration_since(utils::now(0))
-      .num_milliseconds() as u64
-    {
-      x if x < 10 * 1000 || x > 24 * 60 * 60 * 1000 => 10 * 1000,
-      x => x,
-    };
-    info!("Waiting for {}s for next update", wait_for as f32 / 1000f32);
-    sleep(Duration::from_millis(wait_for)).await;
+  async fn wait(&self) -> bool {
+    let now = utils::now(0);
+    let is_night = now.time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+
+    let wait = match !is_night {
+      true => self
+        .prev
+        .next_update
+        .signed_duration_since(now)
+        .num_milliseconds()
+        .clamp(1000 * 10, 1000 * 24 * 60 * 60),
+      false => 6 * 60 * 60 - (now.timestamp() - utils::now_date(0).timestamp()),
+    } as u64;
+
+    info!("Sleeping for {}s in awaiting of next update", wait as f32 / 1000f32);
+    sleep(Duration::from_millis(wait)).await;
+    is_night
   }
 }

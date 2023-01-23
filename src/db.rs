@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use maiq_shared::utils;
 use mongodb::{
   bson::{doc, DateTime},
   options::ClientOptions,
@@ -35,7 +36,7 @@ impl Notifiable {
 
 impl Settings {
   pub fn new(id: UserId) -> Self {
-    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::now(), group: None }
+    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(utils::now(0)), group: None }
   }
 }
 
@@ -65,15 +66,15 @@ impl MongoPool {
     Ok(Self { mongo, settings })
   }
 
-  pub async fn get(&self, id: i64) -> Result<Option<Settings>, MongoError> {
-    Ok(self.settings.find_one(doc! { "id": id }, None).await?)
-  }
-
   pub async fn get_or_new(&self, id: i64) -> Result<Settings, MongoError> {
-    match self.settings.find_one(doc! { "id": id }, None).await? {
-      Some(user) => Ok(user),
-      None => Ok(self.new(id).await?),
+    if let Some(settings) = self.settings.find_one(doc! { "id": id }, None).await? {
+      return Ok(settings);
     }
+
+    let user = Settings::new(UserId(id as u64));
+    self.settings.insert_one(&user, None).await?;
+    info!("New user with id {}", user.id);
+    Ok(user)
   }
 
   pub async fn update(&self, new_settings: &Settings) -> Result<Option<Settings>, MongoError> {
@@ -85,24 +86,14 @@ impl MongoPool {
     )
   }
 
-  pub async fn new(&self, id: i64) -> Result<Settings, MongoError> {
-    if let Some(user) = self.get(id).await? {
-      warn!("Tried to insert new user but user with id {} already exists", id);
-      return Ok(user);
-    }
-    let user = Settings::new(UserId(id as u64));
-    info!("New user with id {}", user.id);
-    self.settings.insert_one(&user, None).await?;
-    Ok(user)
-  }
-
-  pub async fn notifiables<'a>(&self) -> Result<Vec<Notifiable>, BotError> {
+  pub async fn notifiables(&self) -> Result<Vec<Notifiable>, BotError> {
     info!("Colleting notifiable users");
     let mut notifies: Vec<Notifiable> = vec![];
     let mut cur = self
       .settings
       .find(doc! { "is_notifications_enabled": true }, None)
       .await?;
+
     while cur.advance().await? {
       let raw = cur.current();
       let id = raw.get_i64("id");
