@@ -7,23 +7,27 @@ use maiq_shared::{
   utils, Group, Lesson, Snapshot,
 };
 
-use crate::api::{self, ApiError, InnerPoll};
+use crate::{
+  api::{self, ApiError, InnerPoll},
+  env,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Change {
   Updated,
   New,
   Nothing,
+  None,
 }
 
 pub trait SnapshotFormatter {
-  fn format_group<'a>(&self, name: &'a str) -> Result<String, String>;
-  fn lookup_changes<'g>(&'g self, prev: &Option<&InnerPoll>) -> HashMap<&'g str, Change>;
+  fn format_group(&self, name: &str) -> Result<String, String>;
+  fn lookup_changes(&self, prev: &Option<&InnerPoll>) -> HashMap<String, Change>;
 }
 
 #[async_trait]
 pub trait SnapshotFormatterExt {
-  async fn format_or_default<'a>(&self, name: &'a str, date: NaiveDate) -> String;
+  async fn format_or_default(&self, name: &str, date: NaiveDate) -> String;
 }
 
 pub trait DefaultFormatter {
@@ -31,20 +35,21 @@ pub trait DefaultFormatter {
 }
 
 impl SnapshotFormatter for Snapshot {
-  fn format_group<'a>(&self, name: &'a str) -> Result<String, String> {
+  fn format_group(&self, name: &str) -> Result<String, String> {
     match self.group(name) {
       Some(group) => Ok(format_group(group, &self.uid, self.date)),
       None => Err(format!("✖️ В снапшоте <code>{}</code> нет расписания для группы <b>{}</b>", self.uid, name)),
     }
   }
 
-  fn lookup_changes<'g>(&'g self, prev: &Option<&InnerPoll>) -> HashMap<&'g str, Change> {
-    if prev.is_none() {
-      return self.groups.iter().map(|g| (g.name.as_str(), Change::New)).collect();
-    }
+  fn lookup_changes(&self, prev: &Option<&InnerPoll>) -> HashMap<String, Change> {
+    let mut changes = env::var(env::GROUPS_LIST)
+      .unwrap_or_default()
+      .split(' ')
+      .map(|g| (g.to_owned(), Change::None))
+      .collect::<HashMap<String, Change>>();
 
     let prev = prev.unwrap();
-    let mut result = HashMap::with_capacity(prev.groups.len());
 
     for group in self.groups.iter() {
       let prev = prev.groups.iter().find(|g| g.0.as_str() == group.name.as_str());
@@ -55,16 +60,16 @@ impl SnapshotFormatter for Snapshot {
         (Some(_), _) => unreachable!(),
       };
 
-      result.insert(group.name.as_str(), change);
+      changes.insert(group.name.clone(), change);
     }
 
-    result
+    changes
   }
 }
 
 #[async_trait]
 impl SnapshotFormatterExt for Snapshot {
-  async fn format_or_default<'a>(&self, name: &'a str, date: NaiveDate) -> String {
+  async fn format_or_default(&self, name: &str, date: NaiveDate) -> String {
     let formatted = self.format_group(name);
     if let Ok(x) = formatted {
       return x;
@@ -102,11 +107,11 @@ impl DefaultFormatter for Result<DefaultGroup, ApiError> {
 }
 
 pub trait NaiveDateExt {
-  fn weekday_str<'a>(&self) -> &'a str;
+  fn weekday_str(&self) -> &str;
 }
 
 impl NaiveDateExt for NaiveDate {
-  fn weekday_str<'a>(&self) -> &'a str {
+  fn weekday_str(&self) -> &str {
     match self.weekday() {
       Weekday::Mon => "Понедельник",
       Weekday::Tue => "Вторник",

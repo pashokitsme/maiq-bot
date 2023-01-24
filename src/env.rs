@@ -18,6 +18,8 @@ env_var!(DEV_ID);
 env_var!(DB_URL, "DATABASE_CONNECTION_URL");
 env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");
 
+env_var!(GROUPS_LIST, "GROUPS");
+
 pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
   self::var(var).and_then(|x| x.parse().ok())
 }
