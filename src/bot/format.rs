@@ -49,10 +49,8 @@ impl SnapshotFormatter for Snapshot {
       .map(|g| (g.to_owned(), Change::None))
       .collect::<HashMap<String, Change>>();
 
-    let prev = prev.unwrap();
-
     for group in self.groups.iter() {
-      let prev = prev.groups.iter().find(|g| g.0.as_str() == group.name.as_str());
+      let prev = prev.and_then(|p| p.groups.iter().find(|g| g.0.as_str() == group.name.as_str()));
       let change = match (prev, group.uid.as_str()) {
         (Some(a), b) if a.1.as_str() != b => Change::Updated,
         (Some(a), b) if a.1.as_str() == b => Change::Nothing,
