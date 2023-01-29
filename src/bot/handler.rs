@@ -95,7 +95,7 @@ impl MContext {
     1. <a href="https://github.com/pashokitsme/maiq-parser">Парсер расписания</a>.
     2. <a href="https://github.com/pashokitsme/maiq-web-api">Бекенд</a>.
     Кстати, API публичное (но сервер, к сожалению, где-то в us west) - если будет желание использовать, <a href="https://t.me/pashokitsme">пишите</a>, интересно же.
-    `3. <a href="https://github.com/pashokitsme/maiq-bot">Бот</a>.
+    3. <a href="https://github.com/pashokitsme/maiq-bot">Бот</a>.
 
 Жду пулл реквестов и/или звёздочек! 🌟
 "#,
