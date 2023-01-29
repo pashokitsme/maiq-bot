@@ -27,8 +27,7 @@ impl Poller {
   pub async fn run(&mut self) {
     loop {
       self.wait().await;
-      let is_night = utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap();
-      if is_night {
+      if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
         let wait_s = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp()) as u64;
         info!("Sleeping due to the night for {}s", wait_s);
         sleep(Duration::from_secs(wait_s)).await;
@@ -45,13 +44,13 @@ impl Poller {
 
       if self.is_notify_needed(self.prev.today.as_ref(), poll.today.as_ref()) {
         self
-          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref(), is_night)
+          .notify(poll.today.as_ref().unwrap().uid.as_str(), &self.prev.today.as_ref())
           .await;
       }
 
       if self.is_notify_needed(self.prev.next.as_ref(), poll.next.as_ref()) {
         self
-          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref(), is_night)
+          .notify(poll.next.as_ref().unwrap().uid.as_str(), &self.prev.next.as_ref())
           .await;
       }
 
@@ -68,7 +67,7 @@ impl Poller {
     }
   }
 
-  async fn notify(&self, uid: &str, prev: &Option<&InnerPoll>, silent: bool) {
+  async fn notify(&self, uid: &str, prev: &Option<&InnerPoll>) {
     let snapshot = match api::snapshot(uid).await {
       Ok(s) => s,
       Err(err) => {
@@ -77,7 +76,7 @@ impl Poller {
       }
     };
 
-    if let Err(err) = notifier::notify_users(&self.bot, &self.mongo, prev, &snapshot, silent).await {
+    if let Err(err) = notifier::notify_users(&self.bot, &self.mongo, prev, &snapshot).await {
       error!("An error occured while notifying users: {}", err);
     }
   }

@@ -145,10 +145,11 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
 async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
   let group = ctx
     .mongo
-    .get_or_new(ctx.sender_id_i64())
+    .get_or_new(ctx.user_id())
     .await?
     .group
     .unwrap_or("UNSET".into());
+
   let snapshot = api::latest(fetch.clone()).await;
 
   let date = match fetch {
@@ -168,7 +169,7 @@ async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
 }
 
 async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
-  let settings = ctx.mongo.get_or_new(ctx.sender_id_i64()).await?;
+  let settings = ctx.mongo.get_or_new(ctx.user_id()).await?;
   if uid.is_empty() || settings.group.is_none() {
     return Err(BotError::invalid_command("/snapshot", "/snapshot [uid]", "/snapshot aztc6qxcc3"));
   }

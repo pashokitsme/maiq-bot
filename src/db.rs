@@ -66,12 +66,12 @@ impl MongoPool {
     Ok(Self { mongo, settings })
   }
 
-  pub async fn get_or_new(&self, id: i64) -> Result<Settings, MongoError> {
-    if let Some(settings) = self.settings.find_one(doc! { "id": id }, None).await? {
+  pub async fn get_or_new(&self, id: UserId) -> Result<Settings, MongoError> {
+    if let Some(settings) = self.settings.find_one(doc! { "id": id.0 as i64 }, None).await? {
       return Ok(settings);
     }
 
-    let user = Settings::new(UserId(id as u64));
+    let user = Settings::new(id);
     self.settings.insert_one(&user, None).await?;
     info!("New user with id {}", user.id);
     Ok(user)

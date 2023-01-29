@@ -22,9 +22,6 @@ pub enum BotError {
 
   #[error("☠️ Ошибка InMemStorage:\n<code>{0}</code>")]
   TeloxideInMemStorageError(InMemStorageError),
-
-  #[error("❗️ Ошибка: {0}")]
-  Custom(String),
 }
 
 impl BotError {
