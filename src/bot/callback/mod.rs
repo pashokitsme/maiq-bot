@@ -2,8 +2,7 @@ pub mod handler;
 
 use serde::{Deserialize, Serialize};
 use teloxide::{
-  requests::Requester,
-  types::{CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup},
+  types::{CallbackQuery, InlineKeyboardButton},
   Bot,
 };
 

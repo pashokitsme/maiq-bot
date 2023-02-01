@@ -1,7 +1,10 @@
 use chrono::{Datelike, NaiveDate, Weekday};
 use maiq_shared::{utils, Fetch};
 use teloxide::{
-  dispatching::{HandlerExt, UpdateFilterExt},
+  dispatching::{
+    dialogue::{self, InMemStorage},
+    HandlerExt, UpdateFilterExt, UpdateHandler,
+  },
   dptree as dp,
   macros::BotCommands,
   payloads::{AnswerCallbackQuerySetters, SendMessageSetters},
@@ -12,7 +15,7 @@ use teloxide::{
   Bot,
 };
 
-use crate::{api, db::MongoPool, env, error::BotError};
+use crate::{api, bot::state::State, db::MongoPool, env, error::BotError};
 
 use self::{
   callback::{Callback, CallbackKind},
@@ -25,6 +28,7 @@ pub mod notifier;
 mod callback;
 mod format;
 mod handler;
+mod state;
 
 pub type BotResult = Result<(), BotError>;
 
@@ -76,33 +80,41 @@ pub async fn start(bot: Bot, pool: MongoPool) {
     .expect("Couldn't set bot commands");
 
   let me = bot.get_me().await.expect("Login error");
-  let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
-  info!("Dev ID: {}", dev_id);
-
-  let handler = dp::entry()
-    .branch(
-      Update::filter_message()
-        .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
-        .branch(
-          dp::entry()
-            .filter(move |msg: Message| msg.from().unwrap().id == dev_id)
-            .filter_command::<DevCommand>()
-            .endpoint(dev_command_handler),
-        ),
-    )
-    .branch(Update::filter_callback_query().endpoint(dispatch_callback_query));
 
   bot.delete_webhook().await.expect("Couldn't delete webhook");
   info!("Logged in as {} [@{}]", me.full_name(), me.username());
   info!("Started");
-  Dispatcher::builder(bot, handler)
-    .dependencies(dp::deps![pool])
+
+  Dispatcher::builder(bot, dispatch_scheme())
+    .dependencies(dp::deps![InMemStorage::<State>::new(), pool])
     .enable_ctrlc_handler()
     .build()
     .dispatch()
     .await;
 }
 
+fn dispatch_scheme() -> UpdateHandler<BotError> {
+  use dp::case;
+
+  let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
+  info!("Dev ID: {}", dev_id);
+  let user_cmds_handler = Update::filter_message().branch(
+    case![State::None]
+      .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
+      .branch(
+        dp::entry()
+          .filter_command::<DevCommand>()
+          .filter(move |msg: Message| msg.from().unwrap().id == dev_id)
+          .endpoint(dev_command_handler),
+      ),
+  );
+
+  let callback_handler = Update::filter_callback_query().endpoint(dispatch_callback_query);
+
+  dialogue::enter::<Update, InMemStorage<State>, State, _>()
+    .branch(user_cmds_handler)
+    .branch(callback_handler)
+}
 /*
 ? maybe will be used in future
 async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotError, DefaultKey>) {
@@ -173,6 +185,7 @@ async fn try_execute_command(ctx: &mut Context) -> BotResult {
     Command::DefaultNext => ctx.reply_default(get_next_day()).await?,
     Command::Snapshot(ref uid) => send_snapshot_to_user(ctx, uid).await?,
   }
+
   Ok(())
 }
 
@@ -183,6 +196,7 @@ async fn send_hi_btn(ctx: &mut Context) -> BotResult {
   ctx.send_message(ctx.chat_id(), "Хай").reply_markup(markup).await?;
   Ok(())
 }
+
 async fn send_single_timetable(ctx: &mut Context, fetch: Fetch) -> BotResult {
   let group = ctx
     .mongo
