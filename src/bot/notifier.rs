@@ -49,7 +49,7 @@ pub async fn send_to_all(bot: &Bot, msg: &str, ids: &[i64]) -> Result<(), BotErr
     );
   }
 
-  info!("Sending messages to {} users..", handles.len());
+  info!("Sending message to users {:?} ({})..", ids, ids.len());
   for (idx, handle) in handles.join_next().await.iter().enumerate() {
     if let Err(err) = handle {
       warn!("Error occured while notifying users: {}", err)
