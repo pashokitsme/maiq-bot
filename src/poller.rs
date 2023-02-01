@@ -31,7 +31,7 @@ impl Poller {
         let wait_s = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp()) as u64;
         info!("Sleeping due to the night for {}s", wait_s);
         sleep(Duration::from_secs(wait_s)).await;
-      }
+      };
 
       let poll = match api::poll().await {
         Ok(p) => p,

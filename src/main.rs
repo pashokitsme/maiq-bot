@@ -17,7 +17,7 @@ mod poller;
 #[tokio::main]
 async fn main() {
   dotenvy::dotenv().ok();
-  env_logger::init();
+  pretty_env_logger::init();
   env::check_env_vars();
 
   let mongo = db::MongoPool::init().await.expect("Couldn't connect to database");

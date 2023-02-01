@@ -21,11 +21,12 @@ mongodb = { version = "2.3.1", features = ["bson-chrono-0_4", "tokio-openssl"] }
 reqwest = { version = "0.11.13", features = ["json"] }
 serde = { version = "1.0.152", features = ["serde_derive"] }
 serde_json = "1.0.91"
-teloxide = { version = "0.11.3", features = ["erased", "cache-me", "macros", "teloxide-macros"] }
+teloxide = { version = "0.12", features = ["erased", "cache-me", "macros", "teloxide-macros"] }
 thiserror = "1.0.38"
 tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
 openssl = { version = "0.10.45", features = ["vendored"] }
 openssl-sys = { version = "0.9.80", features = ["openssl-src", "vendored"] }
 async-trait = "0.1.61"
 fastrand = "1.8.0"
-env_logger = "0.10.0"
+bincode = "1.3.3"
+pretty_env_logger = "0.4.0"

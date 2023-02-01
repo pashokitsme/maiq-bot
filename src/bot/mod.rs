@@ -4,9 +4,10 @@ use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt},
   dptree as dp,
   macros::BotCommands,
+  payloads::{AnswerCallbackQuerySetters, SendMessageSetters},
   prelude::Dispatcher,
   requests::Requester,
-  types::{Message, Update, UserId},
+  types::{CallbackQuery, InlineKeyboardMarkup, Message, Update, UserId},
   utils::command::BotCommands as _,
   Bot,
 };
@@ -14,12 +15,14 @@ use teloxide::{
 use crate::{api, db::MongoPool, env, error::BotError};
 
 use self::{
+  callback::{Callback, CallbackKind},
   format::{SnapshotFormatter, SnapshotFormatterExt},
-  handler::MContext,
+  handler::Context,
 };
 
 pub mod notifier;
 
+mod callback;
 mod format;
 mod handler;
 
@@ -28,6 +31,9 @@ pub type BotResult = Result<(), BotError>;
 #[derive(BotCommands, Clone, Debug)]
 #[command(rename_rule = "snake_case")]
 pub enum Command {
+  #[command(description = "Hi!")]
+  Hi,
+
   #[command(description = "Расписание на сегодня")]
   Today,
 
@@ -72,14 +78,19 @@ pub async fn start(bot: Bot, pool: MongoPool) {
   let me = bot.get_me().await.expect("Login error");
   let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
   info!("Dev ID: {}", dev_id);
-  let handler = Update::filter_message()
-    .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
+
+  let handler = dp::entry()
     .branch(
-      dp::entry()
-        .filter(move |msg: Message| msg.from().unwrap().id == dev_id)
-        .filter_command::<DevCommand>()
-        .endpoint(dev_command_handler),
-    );
+      Update::filter_message()
+        .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
+        .branch(
+          dp::entry()
+            .filter(move |msg: Message| msg.from().unwrap().id == dev_id)
+            .filter_command::<DevCommand>()
+            .endpoint(dev_command_handler),
+        ),
+    )
+    .branch(Update::filter_callback_query().endpoint(dispatch_callback_query));
 
   bot.delete_webhook().await.expect("Couldn't delete webhook");
   info!("Logged in as {} [@{}]", me.full_name(), me.username());
@@ -108,7 +119,7 @@ async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotErr
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: MongoPool) -> BotResult {
   info!("Command {:?} from {} [{}]", cmd, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);
-  let mut ctx = MContext::new(bot, msg, cmd, mongo);
+  let mut ctx = Context::new(bot, msg, cmd, mongo);
   if let Err(err) = try_execute_command(&mut ctx).await {
     error!("{}", err);
     ctx.reply(err.to_string()).await?;
@@ -127,8 +138,31 @@ pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo:
   Ok(())
 }
 
-async fn try_execute_command(ctx: &mut MContext) -> BotResult {
+pub async fn dispatch_callback_query(bot: Bot, q: CallbackQuery) -> BotResult {
+  let kind: CallbackKind = match q
+    .data
+    .as_ref()
+    .and_then(|data| bincode::deserialize(&data.as_bytes()).ok())
+  {
+    Some(x) => x,
+    None => {
+      bot
+        .answer_callback_query(q.id)
+        .text("Я не знаю, что делать с этой кнопкой 🤕")
+        .show_alert(true)
+        .await?;
+      return Err(BotError::InvalidCallback);
+    }
+  };
+
+  info!("Callback {:?} from {}", kind, q.from.full_name());
+
+  callback::handle(bot, q, kind).await
+}
+
+async fn try_execute_command(ctx: &mut Context) -> BotResult {
   match ctx.used_command {
+    Command::Hi => send_hi_btn(ctx).await?,
     Command::Start => ctx.start_n_init().await?,
     Command::About => ctx.reply_about().await?,
     Command::ToggleNotifications => ctx.toggle_notifications().await?,
@@ -142,7 +176,14 @@ async fn try_execute_command(ctx: &mut MContext) -> BotResult {
   Ok(())
 }
 
-async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
+async fn send_hi_btn(ctx: &mut Context) -> BotResult {
+  let markup =
+    InlineKeyboardMarkup::new(vec![vec![Callback::new("123", CallbackKind::Ok), Callback::new("X", CallbackKind::Del)]]);
+
+  ctx.send_message(ctx.chat_id(), "Хай").reply_markup(markup).await?;
+  Ok(())
+}
+async fn send_single_timetable(ctx: &mut Context, fetch: Fetch) -> BotResult {
   let group = ctx
     .mongo
     .get_or_new(ctx.user_id())
@@ -168,7 +209,7 @@ async fn send_single_timetable(ctx: &mut MContext, fetch: Fetch) -> BotResult {
   ctx.reply(snapshot.format_or_default(&*group, date).await).await
 }
 
-async fn send_snapshot_to_user(ctx: &MContext, uid: &String) -> BotResult {
+async fn send_snapshot_to_user(ctx: &Context, uid: &String) -> BotResult {
   let settings = ctx.mongo.get_or_new(ctx.user_id()).await?;
   if uid.is_empty() || settings.group.is_none() {
     return Err(BotError::invalid_command("/snapshot", "/snapshot [uid]", "/snapshot aztc6qxcc3"));

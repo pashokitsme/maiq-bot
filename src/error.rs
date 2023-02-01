@@ -8,6 +8,9 @@ pub enum BotError {
   #[error("✖️ Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>")]
   InvalidCommandUsage { command: String, help: String, example: String },
 
+  #[error("Invalid callback data")]
+  InvalidCallback,
+
   #[error("❗️ Ошибка API:\n<code>{1}</code>")]
   ApiError(String, String),
 

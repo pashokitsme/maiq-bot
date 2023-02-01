@@ -11,9 +11,7 @@ use teloxide::{
 use super::{format::DefaultFormatter, Command};
 use crate::{api, bot::BotResult, db::MongoPool, error::BotError};
 
-// todo: (?) make it injectable
-/// M`essage` handler context
-pub struct MContext {
+pub struct Context {
   bot: Bot,
   pub msg: Message,
   pub user: User,
@@ -21,7 +19,7 @@ pub struct MContext {
   pub mongo: MongoPool,
 }
 
-impl Deref for MContext {
+impl Deref for Context {
   type Target = Bot;
 
   fn deref(&self) -> &Self::Target {
@@ -29,7 +27,7 @@ impl Deref for MContext {
   }
 }
 
-impl MContext {
+impl Context {
   pub fn new(bot: Bot, msg: Message, cmd: Command, mongo: MongoPool) -> Self {
     Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo }
   }
@@ -131,14 +129,9 @@ impl MContext {
   }
 
   pub async fn reply_default(&self, date: NaiveDate) -> BotResult {
-    let group = match self.mongo.get_or_new(self.user_id()).await?.group {
-      Some(g) => g,
-      None => return self.reply("Ты не указал группу").await.map(|_| ()),
-    };
-
-    self
-      .reply(api::default(group, date.weekday()).await.format(date))
-      .await?;
-    Ok(())
+    match self.mongo.get_or_new(self.user_id()).await?.group {
+      Some(g) => self.reply(api::default(g, date.weekday()).await.format(date)).await,
+      None => self.reply("Ты не указал группу").await.map(|_| ()),
+    }
   }
 }
