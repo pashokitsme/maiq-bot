@@ -1,33 +1,27 @@
 use async_trait::async_trait;
-use chrono::{Datelike, NaiveDate, Weekday};
-use maiq_shared::{utils, Fetch};
+
+use maiq_api_models::utils;
 use teloxide::{
   dispatching::{
     dialogue::{self, InMemStorage},
     HandlerExt, UpdateFilterExt, UpdateHandler,
   },
   dptree as dp,
-  payloads::SendMessageSetters,
   prelude::{Dialogue, Dispatcher},
   requests::Requester,
-  types::{CallbackQuery, InlineKeyboardMarkup, Message, Update, UserId},
+  types::{CallbackQuery, Message, Update, UserId},
   utils::command::BotCommands as _,
   Bot,
 };
 
 use crate::{
-  api,
   bot::commands::{dev::DevCommand, user::Command},
   db::MongoPool,
   env,
   error::BotError,
 };
 
-use self::{
-  callback::{Callback, CallbackKind},
-  context::Context,
-  format::{SnapshotFormatter, SnapshotFormatterExt},
-};
+use self::callback::CallbackKind;
 
 pub mod notifier;
 
@@ -126,7 +120,7 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool, state:
     .unwrap_or(CallbackKind::Unknown);
 
   info!("Callback {:?} from {}", kind, query.from.full_name());
-  kind.dispatch(bot, query, mongo, state).await
+  dispatch(kind, bot, query, mongo, state).await
 }
 
 async fn dispatch<T: Dispatch<Kind = K>, K>(
@@ -139,57 +133,9 @@ async fn dispatch<T: Dispatch<Kind = K>, K>(
   dispatchable.dispatch(bot, kind, mongo, state).await
 }
 
-async fn send_hi_btn(ctx: &mut Context) -> BotResult {
-  let markup =
-    InlineKeyboardMarkup::new(vec![vec![Callback::new("123", CallbackKind::Ok), Callback::new("X", CallbackKind::Del)]]);
-
-  ctx.send_message(ctx.chat_id(), "Хай").reply_markup(markup).await?;
-  Ok(())
-}
-
-async fn send_single_timetable(ctx: &mut Context, fetch: Fetch) -> BotResult {
-  let group = ctx
-    .mongo
-    .get_or_new(ctx.user_id())
-    .await?
-    .group
-    .unwrap_or("UNSET".into());
-
-  let snapshot = api::latest(fetch.clone()).await;
-
-  let date = match fetch {
-    Fetch::Today => utils::now(0).date_naive(),
-    Fetch::Next => get_next_day(),
-  };
-
-  let snapshot = match snapshot {
-    Ok(s) => s,
-    Err(e) => {
-      ctx.reply(BotError::from(e).to_string()).await?;
-      return ctx.reply_default(date).await;
-    }
-  };
-
-  ctx.reply(snapshot.format_or_default(&*group, date).await).await
-}
-
-async fn send_snapshot_to_user(ctx: &Context, uid: &String) -> BotResult {
-  let settings = ctx.mongo.get_or_new(ctx.user_id()).await?;
-  if uid.is_empty() || settings.group.is_none() {
-    return Err(BotError::invalid_command("/snapshot", "/snapshot [uid]", "/snapshot aztc6qxcc3"));
-  }
-
-  let snapshot = api::snapshot(uid).await?;
-  let body = match snapshot.format_group(&*settings.group.unwrap()) {
-    Ok(x) => x,
-    Err(x) => x,
-  };
-  ctx.reply(body).await
-}
-
-fn get_next_day() -> NaiveDate {
+fn get_next_day() -> chrono::NaiveDate {
   let date = utils::now(1).date_naive();
-  match date.weekday() == Weekday::Sun {
+  match chrono::Datelike::weekday(&date) == chrono::Weekday::Sun {
     true => utils::now(2).date_naive(),
     false => date,
   }

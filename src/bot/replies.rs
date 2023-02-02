@@ -1,10 +1,13 @@
+use maiq_api_models::{utils, Fetch};
 use teloxide::{
   payloads::SendMessageSetters,
   requests::Requester,
   types::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode},
 };
 
-use super::{context::Context, BotResult};
+use crate::{api, bot::format::SnapshotFormatterExt, error::BotError};
+
+use super::{context::Context, get_next_day, BotResult};
 
 impl Context {
   pub async fn start(&self) -> BotResult {
@@ -62,5 +65,31 @@ impl Context {
         .reply_markup(markup)
         .await?;
     Ok(())
+  }
+
+  pub async fn reply_timetable(&self, fetch: Fetch) -> BotResult {
+    let group = self
+      .mongo
+      .get_or_new(self.user_id())
+      .await?
+      .group
+      .unwrap_or("UNSET".into());
+
+    let snapshot = api::latest(fetch.clone()).await;
+
+    let date = match fetch {
+      Fetch::Today => utils::now(0).date_naive(),
+      Fetch::Next => get_next_day(),
+    };
+
+    let snapshot = match snapshot {
+      Ok(s) => s,
+      Err(e) => {
+        self.reply(BotError::from(e).to_string()).await?;
+        return self.reply_default(date).await;
+      }
+    };
+
+    self.reply(snapshot.format_or_default(&*group, date).await).await
   }
 }

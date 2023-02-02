@@ -10,9 +10,6 @@ use crate::{
 #[derive(BotCommands, Clone, Debug)]
 #[command(rename_rule = "snake_case")]
 pub enum Command {
-  #[command(description = "Hi!")]
-  Hi,
-
   #[command(description = "Расписание на сегодня")]
   Today,
 
@@ -27,9 +24,6 @@ pub enum Command {
 
   #[command(description = "Стандартное расписание на завтра")]
   DefaultNext,
-
-  #[command(description = "[uid] Получить снапшот")]
-  Snapshot(String),
 
   #[command(description = "Включить/выключить уведомления")]
   ToggleNotifications,
@@ -47,19 +41,17 @@ impl Dispatch for Command {
 
   async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
     info!("Command {:?} from {} [{}]", self, kind.from().unwrap().full_name(), kind.from().unwrap().id.0);
-    let mut ctx = Context::new(bot, kind, self, mongo);
+    let ctx = Context::new(bot, kind, self, mongo);
 
     let result = match ctx.used_command {
-      Command::Hi => crate::bot::send_hi_btn(&mut ctx).await,
       Command::Start => ctx.start().await,
       Command::About => ctx.reply_about().await,
       Command::ToggleNotifications => ctx.toggle_notifications().await,
       Command::SetGroup(ref group) => ctx.set_group(group).await,
-      Command::Today => crate::bot::send_single_timetable(&mut ctx, Fetch::Today).await,
-      Command::Next => crate::bot::send_single_timetable(&mut ctx, Fetch::Next).await,
+      Command::Today => ctx.reply_timetable(Fetch::Today).await,
+      Command::Next => ctx.reply_timetable(Fetch::Next).await,
       Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive()).await,
       Command::DefaultNext => ctx.reply_default(crate::bot::get_next_day()).await,
-      Command::Snapshot(ref uid) => crate::bot::send_snapshot_to_user(&ctx, uid).await,
     };
 
     match result {

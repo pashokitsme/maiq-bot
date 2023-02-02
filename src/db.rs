@@ -38,6 +38,8 @@ impl Settings {
   pub fn new(id: UserId) -> Self {
     Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(utils::now(0)), group: None }
   }
+
+  // pub fn group(&self) -> String {}
 }
 
 #[derive(Clone)]
