@@ -42,11 +42,11 @@ impl Poller {
   }
 
   async fn notify_if_need(&self, new: &SnapshotChanges) {
-    if new.groups.is_empty() {
+    if new.groups.is_empty() || new.uid.is_none() {
       return;
     }
 
-    self.notify(&new.uid, new).await
+    self.notify(&new.uid.as_ref().unwrap(), new).await
   }
 
   async fn notify(&self, uid: &str, changes: &SnapshotChanges) {
