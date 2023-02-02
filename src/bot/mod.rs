@@ -15,17 +15,17 @@ use teloxide::{
 };
 
 use crate::{
-  bot::commands::{dev::DevCommand, user::Command},
+  bot::commands::{Command, DevCommand},
   db::MongoPool,
   env,
   error::BotError,
 };
 
-use self::callback::CallbackKind;
+use self::callbacks::CallbackKind;
 
 pub mod notifier;
 
-mod callback;
+mod callbacks;
 mod commands;
 mod context;
 mod format;

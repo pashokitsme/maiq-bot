@@ -10,7 +10,7 @@ use teloxide::{
 };
 
 use crate::{
-  bot::callback::handler::{delete_message, ok},
+  bot::callbacks::handler::{delete_message, ok},
   db::MongoPool,
 };
 

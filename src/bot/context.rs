@@ -7,7 +7,7 @@ use teloxide::{
   Bot,
 };
 
-use super::{format::DefaultFormatter, Command};
+use super::{commands::Command, format::DefaultFormatter};
 use crate::{api, bot::BotResult, db::MongoPool, error::BotError};
 
 pub struct Context {
