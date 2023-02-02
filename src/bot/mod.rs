@@ -1,12 +1,9 @@
+use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Weekday};
 use maiq_shared::{utils, Fetch};
 use teloxide::{
-  dispatching::{
-    dialogue::{self, InMemStorage},
-    HandlerExt, UpdateFilterExt, UpdateHandler,
-  },
+  dispatching::{dialogue, HandlerExt, UpdateFilterExt, UpdateHandler},
   dptree as dp,
-  macros::BotCommands,
   payloads::{AnswerCallbackQuerySetters, SendMessageSetters},
   prelude::Dispatcher,
   requests::Requester,
@@ -15,7 +12,16 @@ use teloxide::{
   Bot,
 };
 
-use crate::{api, bot::state::State, db::MongoPool, env, error::BotError};
+use crate::{
+  api,
+  bot::{
+    commands::{dev::DevCommand, user::Command},
+    state::{GlobalState, GlobalStateStorage, State},
+  },
+  db::MongoPool,
+  env,
+  error::BotError,
+};
 
 use self::{
   callback::{Callback, CallbackKind},
@@ -26,51 +32,20 @@ use self::{
 pub mod notifier;
 
 mod callback;
+mod commands;
 mod format;
 mod handler;
 mod state;
 
-pub type BotResult = Result<(), BotError>;
-
-#[derive(BotCommands, Clone, Debug)]
-#[command(rename_rule = "snake_case")]
-pub enum Command {
-  #[command(description = "Hi!")]
-  Hi,
-
-  #[command(description = "Расписание на сегодня")]
-  Today,
-
-  #[command(description = "Расписание на следующий день")]
-  Next,
-
-  #[command(description = "Информация")]
-  About,
-
-  #[command(description = "Стандартное расписание на сегодня")]
-  DefaultToday,
-
-  #[command(description = "Стандартное расписание на завтра")]
-  DefaultNext,
-
-  #[command(description = "[uid] Получить снапшот")]
-  Snapshot(String),
-
-  #[command(description = "Включить/выключить уведомления")]
-  ToggleNotifications,
-
-  #[command(description = "[группа] - Изменить группу")]
-  SetGroup(String),
-
-  #[command(description = "Старт")]
-  Start,
+lazy_static! {
+  pub static ref DEV_ID: UserId = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
 }
 
-#[derive(BotCommands, Clone, Debug)]
-#[command(rename_rule = "snake_case")]
-pub enum DevCommand {
-  #[command(description = "")]
-  DevNotifiables,
+pub type BotResult = Result<(), BotError>;
+
+#[async_trait]
+trait Dispatch {
+  async fn dispatch(self, bot: Bot, msg: Message, mongo: MongoPool, state: GlobalState) -> BotResult;
 }
 
 pub async fn start(bot: Bot, pool: MongoPool) {
@@ -86,7 +61,7 @@ pub async fn start(bot: Bot, pool: MongoPool) {
   info!("Started");
 
   Dispatcher::builder(bot, dispatch_scheme())
-    .dependencies(dp::deps![InMemStorage::<State>::new(), pool])
+    .dependencies(dp::deps![GlobalStateStorage::new(), pool])
     .enable_ctrlc_handler()
     .build()
     .dispatch()
@@ -96,22 +71,21 @@ pub async fn start(bot: Bot, pool: MongoPool) {
 fn dispatch_scheme() -> UpdateHandler<BotError> {
   use dp::case;
 
-  let dev_id = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
-  info!("Dev ID: {}", dev_id);
+  info!("Dev ID: {}", *DEV_ID);
   let user_cmds_handler = Update::filter_message().branch(
     case![State::None]
-      .branch(dp::entry().filter_command::<Command>().endpoint(command_handler))
+      .branch(dp::entry().filter_command::<Command>().endpoint(dispatch::<Command>))
       .branch(
         dp::entry()
           .filter_command::<DevCommand>()
-          .filter(move |msg: Message| msg.from().unwrap().id == dev_id)
-          .endpoint(dev_command_handler),
+          .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
+          .endpoint(dispatch::<DevCommand>),
       ),
   );
 
   let callback_handler = Update::filter_callback_query().endpoint(dispatch_callback_query);
 
-  dialogue::enter::<Update, InMemStorage<State>, State, _>()
+  dialogue::enter::<Update, GlobalStateStorage, State, _>()
     .branch(user_cmds_handler)
     .branch(callback_handler)
 }
@@ -129,25 +103,8 @@ async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotErr
 }
 */
 
-pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, mongo: MongoPool) -> BotResult {
-  info!("Command {:?} from {} [{}]", cmd, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);
-  let mut ctx = Context::new(bot, msg, cmd, mongo);
-  if let Err(err) = try_execute_command(&mut ctx).await {
-    error!("{}", err);
-    ctx.reply(err.to_string()).await?;
-  }
-  Ok(())
-}
-
-pub async fn dev_command_handler(bot: Bot, msg: Message, cmd: DevCommand, mongo: MongoPool) -> BotResult {
-  match cmd {
-    DevCommand::DevNotifiables => bot
-      .send_message(msg.from().unwrap().id, format!("{:#?}", mongo.notifiables().await?))
-      .await
-      .map(|_| ())?,
-  }
-
-  Ok(())
+async fn dispatch<T: Dispatch>(dispatchable: T, bot: Bot, msg: Message, mongo: MongoPool, state: GlobalState) -> BotResult {
+  dispatchable.dispatch(bot, msg, mongo, state).await
 }
 
 pub async fn dispatch_callback_query(bot: Bot, q: CallbackQuery) -> BotResult {
@@ -170,23 +127,6 @@ pub async fn dispatch_callback_query(bot: Bot, q: CallbackQuery) -> BotResult {
   info!("Callback {:?} from {}", kind, q.from.full_name());
 
   callback::handle(bot, q, kind).await
-}
-
-async fn try_execute_command(ctx: &mut Context) -> BotResult {
-  match ctx.used_command {
-    Command::Hi => send_hi_btn(ctx).await?,
-    Command::Start => ctx.start_n_init().await?,
-    Command::About => ctx.reply_about().await?,
-    Command::ToggleNotifications => ctx.toggle_notifications().await?,
-    Command::SetGroup(ref group) => ctx.set_group(group).await?,
-    Command::Today => send_single_timetable(ctx, Fetch::Today).await?,
-    Command::Next => send_single_timetable(ctx, Fetch::Next).await?,
-    Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive()).await?,
-    Command::DefaultNext => ctx.reply_default(get_next_day()).await?,
-    Command::Snapshot(ref uid) => send_snapshot_to_user(ctx, uid).await?,
-  }
-
-  Ok(())
 }
 
 async fn send_hi_btn(ctx: &mut Context) -> BotResult {
