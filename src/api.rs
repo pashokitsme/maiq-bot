@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
-use chrono::{DateTime, Utc, Weekday};
+use chrono::Weekday;
+use maiq_api_models::polling::Poll;
 use maiq_shared::{default::DefaultGroup, Fetch, Snapshot};
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize};
@@ -18,20 +17,6 @@ lazy_static! {
 pub struct ApiError {
   pub cause: String,
   pub desc: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Poll {
-  pub today: Option<InnerPoll>,
-  pub next: Option<InnerPoll>,
-  pub last_update: DateTime<Utc>,
-  pub next_update: DateTime<Utc>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct InnerPoll {
-  pub uid: String,
-  pub groups: HashMap<String, String>,
 }
 
 impl From<reqwest::Error> for ApiError {

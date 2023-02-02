@@ -1,5 +1,6 @@
 use std::{future::IntoFuture, time::Duration};
 
+use maiq_api_models::polling::SnapshotChanges;
 use maiq_shared::Snapshot;
 use teloxide::{
   payloads::SendMessageSetters,
@@ -9,35 +10,29 @@ use teloxide::{
 };
 use tokio::task::JoinSet;
 
-use crate::{
-  api::InnerPoll,
-  bot::format::{Change, SnapshotFormatter, SnapshotFormatterExt},
-  db::MongoPool,
-  error::BotError,
-};
+use crate::{bot::format::SnapshotFormatterExt, db::MongoPool, error::BotError};
 
-pub async fn notify_users(bot: &Bot, mongo: &MongoPool, prev: &Option<&InnerPoll>, snapshot: &Snapshot) -> Result<(), BotError> {
-  let changes = snapshot.lookup_changes(prev);
+pub async fn notify_update(bot: &Bot, mongo: &MongoPool, changes: &SnapshotChanges, snapshot: Snapshot) -> Result<(), BotError> {
   info!("Changes: {:?}", changes);
   let notifiables = mongo.notifiables().await?;
 
-  for noty in notifiables {
-    match changes.get(&*noty.group) {
-      Some(kind) if *kind == Change::Nothing => continue,
+  for notifiable in notifiables {
+    match changes.groups.get(&*notifiable.group) {
+      Some(kind) if kind.is_same() => continue,
       None => continue,
-      Some(_) => (),
+      _ => (),
     }
 
     let body = snapshot
-      .format_or_default(&*noty.group, snapshot.date.date_naive())
+      .format_or_default(&*notifiable.group, snapshot.date.date_naive())
       .await;
 
-    send_to_all(&bot, &*body, &noty.user_ids.as_slice()).await?;
+    send_to_all(&bot, &*body, &notifiable.user_ids.as_slice()).await;
   }
   Ok(())
 }
 
-pub async fn send_to_all(bot: &Bot, msg: &str, ids: &[i64]) -> Result<(), BotError> {
+pub async fn send_to_all(bot: &Bot, msg: &str, ids: &[i64]) {
   let mut handles = JoinSet::new();
 
   for &id in ids {
@@ -49,19 +44,18 @@ pub async fn send_to_all(bot: &Bot, msg: &str, ids: &[i64]) -> Result<(), BotErr
     );
   }
 
-  info!("Sending messages to {} users..", handles.len());
+  info!("Sending message to users {:?} ({})..", ids, ids.len());
   for (idx, handle) in handles.join_next().await.iter().enumerate() {
     if let Err(err) = handle {
-      warn!("Error occured while notifying users: {}", err)
+      warn!("Error occured while notifying users at [{}]: {}", idx, err)
     }
 
     if let Err(err) = handle.as_ref().unwrap() {
-      warn!("Error occured while notifying users: {}", err)
+      warn!("Error occured while notifying users at [{}]: {}", idx, err)
     }
 
     if idx % 25 == 0 {
       tokio::time::sleep(Duration::from_secs(1)).await
     }
   }
-  Ok(())
 }
