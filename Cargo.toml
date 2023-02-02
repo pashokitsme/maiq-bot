@@ -3,7 +3,7 @@ name = "maiq-bot"
 authors = ["pashokitsme <pashamail79@gmail.com>"]
 repository = "https://github.com/pashokitsme/maiq-bot"
 license = "MPL-2.0"
-version = "0.1.6"
+version = "0.2.6"
 edition = "2021"
 
 [profile.release]
@@ -30,3 +30,4 @@ async-trait = "0.1.61"
 fastrand = "1.8.0"
 bincode = "1.3.3"
 pretty_env_logger = "0.4.0"
+maiq-api-models = { git = "https://github.com/pashokitsme/maiq-web-api", branch = "dev", version = "0.1.0" }

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc, Weekday};
 use maiq_shared::{
@@ -7,22 +5,10 @@ use maiq_shared::{
   utils, Group, Lesson, Snapshot,
 };
 
-use crate::{
-  api::{self, ApiError, InnerPoll},
-  env,
-};
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Change {
-  Updated,
-  New,
-  Nothing,
-  None,
-}
+use crate::api::{self, ApiError};
 
 pub trait SnapshotFormatter {
   fn format_group(&self, name: &str) -> Result<String, String>;
-  fn lookup_changes(&self, prev: &Option<&InnerPoll>) -> HashMap<String, Change>;
 }
 
 #[async_trait]
@@ -40,28 +26,6 @@ impl SnapshotFormatter for Snapshot {
       Some(group) => Ok(format_group(group, &self.uid, self.date)),
       None => Err(format!("В снапшоте <code>{}</code> нет расписания для группы <b>{}</b>", self.uid, name)),
     }
-  }
-
-  fn lookup_changes(&self, prev: &Option<&InnerPoll>) -> HashMap<String, Change> {
-    let mut changes = env::var(env::GROUPS_LIST)
-      .unwrap_or_default()
-      .split(' ')
-      .map(|g| (g.to_owned(), Change::None))
-      .collect::<HashMap<String, Change>>();
-
-    for group in self.groups.iter() {
-      let prev = prev.and_then(|p| p.groups.iter().find(|g| g.0.as_str() == group.name.as_str()));
-      let change = match (prev, group.uid.as_str()) {
-        (Some(a), b) if a.1.as_str() != b => Change::Updated,
-        (Some(a), b) if a.1.as_str() == b => Change::Nothing,
-        (None, _) => Change::New,
-        (Some(_), _) => unreachable!(),
-      };
-
-      changes.insert(group.name.clone(), change);
-    }
-
-    changes
   }
 }
 
