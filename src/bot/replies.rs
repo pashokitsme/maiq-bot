@@ -5,7 +5,7 @@ use teloxide::{
   types::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode},
 };
 
-use crate::{api, bot::format::SnapshotFormatterExt, db::Settings, error::BotError};
+use crate::{api, bot::format::SnapshotFormatterExt, db::Settings};
 
 use super::{context::Context, get_next_day, BotResult};
 
@@ -75,22 +75,15 @@ impl Context {
       .group
       .unwrap_or("UNSET".into());
 
-    let snapshot = api::latest(fetch.clone()).await;
-
     let date = match fetch {
       Fetch::Today => utils::now(0).date_naive(),
       Fetch::Next => get_next_day(),
     };
 
-    let snapshot = match snapshot {
-      Ok(s) => s,
-      Err(e) => {
-        self.reply(BotError::from(e).to_string()).await?;
-        return self.reply_default(date).await;
-      }
-    };
-
-    self.reply(snapshot.format_or_default(&*group, date).await).await
+    match api::latest(fetch).await {
+      Ok(s) => self.reply(s.format_or_default(&*group, date).await).await,
+      Err(_) => self.reply_default(date).await,
+    }
   }
 
   pub async fn dev_reply_user_list(&self) -> BotResult {
