@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use teloxide::{macros::BotCommands, requests::Requester, types::Message, Bot};
 
 use crate::{
-  bot::{state::GlobalState, BotResult, Dispatch},
+  bot::{BotResult, Dispatch, GlobalState},
   db::MongoPool,
 };
 

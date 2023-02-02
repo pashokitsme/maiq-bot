@@ -2,10 +2,13 @@ use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Weekday};
 use maiq_shared::{utils, Fetch};
 use teloxide::{
-  dispatching::{dialogue, HandlerExt, UpdateFilterExt, UpdateHandler},
+  dispatching::{
+    dialogue::{self, InMemStorage},
+    HandlerExt, UpdateFilterExt, UpdateHandler,
+  },
   dptree as dp,
   payloads::SendMessageSetters,
-  prelude::Dispatcher,
+  prelude::{Dialogue, Dispatcher},
   requests::Requester,
   types::{CallbackQuery, InlineKeyboardMarkup, Message, Update, UserId},
   utils::command::BotCommands as _,
@@ -14,10 +17,7 @@ use teloxide::{
 
 use crate::{
   api,
-  bot::{
-    commands::{dev::DevCommand, user::Command},
-    state::{GlobalState, GlobalStateStorage, State},
-  },
+  bot::commands::{dev::DevCommand, user::Command},
   db::MongoPool,
   env,
   error::BotError,
@@ -25,23 +25,31 @@ use crate::{
 
 use self::{
   callback::{Callback, CallbackKind},
+  context::Context,
   format::{SnapshotFormatter, SnapshotFormatterExt},
-  handler::Context,
 };
 
 pub mod notifier;
 
 mod callback;
 mod commands;
+mod context;
 mod format;
-mod handler;
-mod state;
+mod replies;
 
 lazy_static! {
   pub static ref DEV_ID: UserId = UserId(env::parse_var(env::DEV_ID).unwrap_or(0));
 }
 
 pub type BotResult = Result<(), BotError>;
+pub type GlobalStateStorage = InMemStorage<State>;
+pub type GlobalState = Dialogue<State, GlobalStateStorage>;
+
+#[derive(Clone, Default)]
+pub enum State {
+  #[default]
+  None,
+}
 
 #[async_trait]
 trait Dispatch {

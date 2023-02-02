@@ -14,7 +14,7 @@ use crate::{
   db::MongoPool,
 };
 
-use super::{state::GlobalState, BotResult, Dispatch};
+use super::{BotResult, Dispatch, GlobalState};
 
 #[derive(Debug)]
 pub struct Callback<T: Into<String>> {
