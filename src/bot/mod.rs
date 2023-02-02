@@ -4,7 +4,7 @@ use maiq_shared::{utils, Fetch};
 use teloxide::{
   dispatching::{dialogue, HandlerExt, UpdateFilterExt, UpdateHandler},
   dptree as dp,
-  payloads::{AnswerCallbackQuerySetters, SendMessageSetters},
+  payloads::SendMessageSetters,
   prelude::Dispatcher,
   requests::Requester,
   types::{CallbackQuery, InlineKeyboardMarkup, Message, Update, UserId},
@@ -45,7 +45,9 @@ pub type BotResult = Result<(), BotError>;
 
 #[async_trait]
 trait Dispatch {
-  async fn dispatch(self, bot: Bot, msg: Message, mongo: MongoPool, state: GlobalState) -> BotResult;
+  type Kind;
+
+  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, state: GlobalState) -> BotResult;
 }
 
 pub async fn start(bot: Bot, pool: MongoPool) {
@@ -72,23 +74,28 @@ fn dispatch_scheme() -> UpdateHandler<BotError> {
   use dp::case;
 
   info!("Dev ID: {}", *DEV_ID);
-  let user_cmds_handler = Update::filter_message().branch(
+  let cmds_handler = Update::filter_message().branch(
     case![State::None]
-      .branch(dp::entry().filter_command::<Command>().endpoint(dispatch::<Command>))
+      .branch(
+        dp::entry()
+          .filter_command::<Command>()
+          .endpoint(dispatch::<Command, Message>),
+      )
       .branch(
         dp::entry()
           .filter_command::<DevCommand>()
           .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
-          .endpoint(dispatch::<DevCommand>),
+          .endpoint(dispatch::<DevCommand, Message>),
       ),
   );
 
-  let callback_handler = Update::filter_callback_query().endpoint(dispatch_callback_query);
+  let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
 
   dialogue::enter::<Update, GlobalStateStorage, State, _>()
-    .branch(user_cmds_handler)
+    .branch(cmds_handler)
     .branch(callback_handler)
 }
+
 /*
 ? maybe will be used in future
 async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotError, DefaultKey>) {
@@ -103,30 +110,25 @@ async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotErr
 }
 */
 
-async fn dispatch<T: Dispatch>(dispatchable: T, bot: Bot, msg: Message, mongo: MongoPool, state: GlobalState) -> BotResult {
-  dispatchable.dispatch(bot, msg, mongo, state).await
-}
-
-pub async fn dispatch_callback_query(bot: Bot, q: CallbackQuery) -> BotResult {
-  let kind: CallbackKind = match q
+async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool, state: GlobalState) -> BotResult {
+  let kind: CallbackKind = query
     .data
     .as_ref()
     .and_then(|data| bincode::deserialize(&data.as_bytes()).ok())
-  {
-    Some(x) => x,
-    None => {
-      bot
-        .answer_callback_query(q.id)
-        .text("Я не знаю, что делать с этой кнопкой 🤕")
-        .show_alert(true)
-        .await?;
-      return Err(BotError::InvalidCallback);
-    }
-  };
+    .unwrap_or(CallbackKind::Unknown);
 
-  info!("Callback {:?} from {}", kind, q.from.full_name());
+  info!("Callback {:?} from {}", kind, query.from.full_name());
+  kind.dispatch(bot, query, mongo, state).await
+}
 
-  callback::handle(bot, q, kind).await
+async fn dispatch<T: Dispatch<Kind = K>, K>(
+  dispatchable: T,
+  bot: Bot,
+  kind: K,
+  mongo: MongoPool,
+  state: GlobalState,
+) -> BotResult {
+  dispatchable.dispatch(bot, kind, mongo, state).await
 }
 
 async fn send_hi_btn(ctx: &mut Context) -> BotResult {

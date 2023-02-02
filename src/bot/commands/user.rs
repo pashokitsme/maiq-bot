@@ -43,9 +43,11 @@ pub enum Command {
 
 #[async_trait]
 impl Dispatch for Command {
-  async fn dispatch(self, bot: Bot, msg: Message, mongo: MongoPool, _state: GlobalState) -> BotResult {
-    info!("Command {:?} from {} [{}]", self, msg.from().unwrap().full_name(), msg.from().unwrap().id.0);
-    let mut ctx = Context::new(bot, msg, self, mongo);
+  type Kind = Message;
+
+  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
+    info!("Command {:?} from {} [{}]", self, kind.from().unwrap().full_name(), kind.from().unwrap().id.0);
+    let mut ctx = Context::new(bot, kind, self, mongo);
     if let Err(err) = try_execute_command(&mut ctx).await {
       error!("{}", err);
       ctx.reply(err.to_string()).await?;

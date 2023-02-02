@@ -15,10 +15,12 @@ pub enum DevCommand {
 
 #[async_trait]
 impl Dispatch for DevCommand {
-  async fn dispatch(self, bot: Bot, msg: Message, mongo: MongoPool, _state: GlobalState) -> BotResult {
+  type Kind = Message;
+
+  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
     match self {
       DevCommand::DevNotifiables => bot
-        .send_message(msg.from().unwrap().id, format!("{:#?}", mongo.notifiables().await?))
+        .send_message(kind.from().unwrap().id, format!("{:#?}", mongo.notifiables().await?))
         .await
         .map(|_| ())?,
     }
