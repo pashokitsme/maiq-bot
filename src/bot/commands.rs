@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use maiq_shared::{utils, Fetch};
-use teloxide::{macros::BotCommands, requests::Requester, types::Message, Bot};
+use teloxide::{macros::BotCommands, types::Message, Bot};
 
 use crate::{
   bot::{context::Context, BotResult, Dispatch, GlobalState},
@@ -41,9 +41,9 @@ impl Dispatch for Command {
 
   async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
     info!("Command {:?} from {} [{}]", self, kind.from().unwrap().full_name(), kind.from().unwrap().id.0);
-    let ctx = Context::new(bot, kind, self, mongo);
+    let ctx = Context::new(bot, kind, mongo);
 
-    let result = match ctx.used_command {
+    let result = match self {
       Command::Start => ctx.start().await,
       Command::About => ctx.reply_about().await,
       Command::ToggleNotifications => ctx.toggle_notifications().await,
@@ -69,6 +69,9 @@ impl Dispatch for Command {
 pub enum DevCommand {
   #[command(description = "")]
   DevNotifiables,
+
+  #[command(rename = "dev_userlist", description = "")]
+  DevUserList,
 }
 
 #[async_trait]
@@ -76,12 +79,13 @@ impl Dispatch for DevCommand {
   type Kind = Message;
 
   async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
+    type Cmd = DevCommand;
+    let ctx = Context::new(bot, kind, mongo);
+
     match self {
-      DevCommand::DevNotifiables => bot
-        .send_message(kind.from().unwrap().id, format!("{:#?}", mongo.notifiables().await?))
-        .await
-        .map(|_| ())?,
-    }
+      Cmd::DevNotifiables => ctx.reply(format!("{:?}", ctx.mongo.notifiables().await?)).await?,
+      Cmd::DevUserList => ctx.dev_reply_user_list().await?,
+    };
     Ok(())
   }
 }

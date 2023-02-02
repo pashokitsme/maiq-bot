@@ -7,14 +7,13 @@ use teloxide::{
   Bot,
 };
 
-use super::{commands::Command, format::DefaultFormatter};
+use super::format::DefaultFormatter;
 use crate::{api, bot::BotResult, db::MongoPool, error::BotError};
 
 pub struct Context {
   bot: Bot,
   pub msg: Message,
   pub user: User,
-  pub used_command: Command,
   pub mongo: MongoPool,
 }
 
@@ -27,8 +26,8 @@ impl Deref for Context {
 }
 
 impl Context {
-  pub fn new(bot: Bot, msg: Message, cmd: Command, mongo: MongoPool) -> Self {
-    Self { bot, user: msg.from().unwrap().clone(), msg, used_command: cmd, mongo }
+  pub fn new(bot: Bot, msg: Message, mongo: MongoPool) -> Self {
+    Self { bot, user: msg.from().unwrap().clone(), msg, mongo }
   }
 
   pub fn chat_id(&self) -> ChatId {

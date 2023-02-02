@@ -5,7 +5,7 @@ use teloxide::{
   types::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode},
 };
 
-use crate::{api, bot::format::SnapshotFormatterExt, error::BotError};
+use crate::{api, bot::format::SnapshotFormatterExt, db::Settings, error::BotError};
 
 use super::{context::Context, get_next_day, BotResult};
 
@@ -91,5 +91,29 @@ impl Context {
     };
 
     self.reply(snapshot.format_or_default(&*group, date).await).await
+  }
+
+  pub async fn dev_reply_user_list(&self) -> BotResult {
+    let users = self.mongo.fetch_all().await?;
+    let format = |u: &Settings| -> String {
+      let r = match u.is_notifications_enabled {
+        true => "[🟢] ",
+        false => "[🔴] ",
+      };
+
+      format!(
+        "{} {} [<a href=\"tg://user?id={}\">#{}</a>] с {}\n",
+        r,
+        u.group.as_ref().unwrap_or(&"no".into()),
+        u.id,
+        u.id,
+        u.joined.to_chrono().format("%d/%m/%Y %H:%M:%S")
+      )
+    };
+
+    let body = format!("Всего: <b>{}</b>\n\n {}", users.len(), users.iter().map(format).collect::<String>());
+
+    self.reply(body).await?;
+    Ok(())
   }
 }

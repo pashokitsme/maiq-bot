@@ -115,4 +115,14 @@ impl MongoPool {
 
     Ok(notifies)
   }
+
+  pub async fn fetch_all(&self) -> Result<Vec<Settings>, BotError> {
+    let mut result = vec![];
+    let mut cur = self.settings.find(doc! {}, None).await?;
+    while cur.advance().await? {
+      result.push(cur.deserialize_current()?);
+    }
+
+    Ok(result)
+  }
 }
