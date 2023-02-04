@@ -2,14 +2,11 @@ use async_trait::async_trait;
 
 use maiq_api_models::utils;
 use teloxide::{
-  dispatching::{
-    dialogue::{self, InMemStorage},
-    HandlerExt, UpdateFilterExt, UpdateHandler,
-  },
+  dispatching::{HandlerExt, UpdateFilterExt, UpdateHandler},
   dptree as dp,
-  prelude::{Dialogue, Dispatcher},
+  prelude::Dispatcher,
   requests::Requester,
-  types::{CallbackQuery, Message, Update, UserId},
+  types::{Message, Update, UserId},
   utils::command::BotCommands as _,
   Bot,
 };
@@ -21,11 +18,9 @@ use crate::{
   error::BotError,
 };
 
-use self::callbacks::CallbackKind;
-
 pub mod notifier;
 
-mod callbacks;
+// mod callbacks;
 mod commands;
 mod context;
 mod format;
@@ -36,8 +31,8 @@ lazy_static! {
 }
 
 pub type BotResult = Result<(), BotError>;
-pub type GlobalStateStorage = InMemStorage<State>;
-pub type GlobalState = Dialogue<State, GlobalStateStorage>;
+// pub type GlobalStateStorage = InMemStorage<State>;
+// pub type GlobalState = Dialogue<State, GlobalStateStorage>;
 
 #[derive(Clone, Default)]
 pub enum State {
@@ -49,7 +44,7 @@ pub enum State {
 trait Dispatch {
   type Kind;
 
-  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, state: GlobalState) -> BotResult;
+  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult;
 }
 
 pub async fn start(bot: Bot, pool: MongoPool) {
@@ -65,7 +60,7 @@ pub async fn start(bot: Bot, pool: MongoPool) {
   info!("Started");
 
   Dispatcher::builder(bot, dispatch_scheme())
-    .dependencies(dp::deps![GlobalStateStorage::new(), pool])
+    .dependencies(dp::deps![pool])
     .enable_ctrlc_handler()
     .build()
     .dispatch()
@@ -73,45 +68,28 @@ pub async fn start(bot: Bot, pool: MongoPool) {
 }
 
 fn dispatch_scheme() -> UpdateHandler<BotError> {
-  use dp::case;
-
   info!("Dev ID: {}", *DEV_ID);
-  let cmds_handler = Update::filter_message().branch(
-    case![State::None]
-      .branch(
-        dp::entry()
-          .filter_command::<Command>()
-          .endpoint(dispatch::<Command, Message>),
-      )
-      .branch(
-        dp::entry()
-          .filter_command::<DevCommand>()
-          .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
-          .endpoint(dispatch::<DevCommand, Message>),
-      ),
-  );
+  let cmds_handler = Update::filter_message()
+    .branch(
+      dp::entry()
+        .filter_command::<Command>()
+        .endpoint(dispatch::<Command, Message>),
+    )
+    .branch(
+      dp::entry()
+        .filter_command::<DevCommand>()
+        .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
+        .endpoint(dispatch::<DevCommand, Message>),
+    );
+  // let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
 
-  let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
-
-  dialogue::enter::<Update, GlobalStateStorage, State, _>()
-    .branch(cmds_handler)
-    .branch(callback_handler)
+  // dialogue::enter::<Update, GlobalStateStorage, State, _>()
+  //   .branch(cmds_handler)
+  //   .branch(callback_handler)
+  cmds_handler
 }
 
 /*
-? maybe will be used in future
-async fn with_webhook(bot: Bot, url: Url, mut dispatcher: Dispatcher<Bot, BotError, DefaultKey>) {
-  info!("Got webhook: {}", url);
-  let listener = webhooks::axum(bot, webhooks::Options::new(([127, 0, 0, 1], 5500).into(), url))
-    .await
-    .expect("Couldn't start with webhook");
-
-  dispatcher
-    .dispatch_with_listener(listener, update_listener_error_handler)
-    .await;
-}
-*/
-
 async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool, state: GlobalState) -> BotResult {
   let kind: CallbackKind = query
     .data
@@ -122,15 +100,10 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool, state:
   info!("Callback {:?} from {}", kind, query.from.full_name());
   dispatch(kind, bot, query, mongo, state).await
 }
+*/
 
-async fn dispatch<T: Dispatch<Kind = K>, K>(
-  dispatchable: T,
-  bot: Bot,
-  kind: K,
-  mongo: MongoPool,
-  state: GlobalState,
-) -> BotResult {
-  dispatchable.dispatch(bot, kind, mongo, state).await
+async fn dispatch<T: Dispatch<Kind = K>, K>(dispatchable: T, bot: Bot, kind: K, mongo: MongoPool) -> BotResult {
+  dispatchable.dispatch(bot, kind, mongo).await
 }
 
 fn get_next_day() -> chrono::NaiveDate {

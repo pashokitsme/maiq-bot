@@ -3,7 +3,7 @@ use maiq_shared::{utils, Fetch};
 use teloxide::{macros::BotCommands, types::Message, Bot};
 
 use crate::{
-  bot::{context::Context, BotResult, Dispatch, GlobalState},
+  bot::{context::Context, BotResult, Dispatch},
   db::MongoPool,
 };
 
@@ -39,7 +39,7 @@ pub enum Command {
 impl Dispatch for Command {
   type Kind = Message;
 
-  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
+  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
     info!("Command {:?} from {} [{}]", self, kind.from().unwrap().full_name(), kind.from().unwrap().id.0);
     let ctx = Context::new(bot, kind, mongo);
 
@@ -78,7 +78,7 @@ pub enum DevCommand {
 impl Dispatch for DevCommand {
   type Kind = Message;
 
-  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool, _state: GlobalState) -> BotResult {
+  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
     type Cmd = DevCommand;
     let ctx = Context::new(bot, kind, mongo);
 
