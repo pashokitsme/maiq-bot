@@ -21,7 +21,7 @@ impl Poller {
   pub async fn run(&mut self) {
     loop {
       if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
-        let wait_s = 6 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp()) as u64;
+        let wait_s = 7 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp()) as u64;
         info!("Sleeping due to the night for {}s", wait_s);
         sleep(Duration::from_secs(wait_s)).await;
       };
