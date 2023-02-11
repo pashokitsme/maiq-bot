@@ -24,7 +24,7 @@ impl SnapshotFormatter for Snapshot {
   fn format_group(&self, name: &str) -> Result<String, String> {
     match self.group(name) {
       Some(group) => Ok(format_group(group, &self.uid, self.date)),
-      None => Err(format!("В снапшоте <code>{}</code> нет расписания для группы <b>{}</b>", self.uid, name)),
+      None => Err(format!("Нет расписания для группы <b>{}</b> [<code>{}</code>]", name, self.uid)),
     }
   }
 }
@@ -48,9 +48,9 @@ impl SnapshotFormatterExt for Snapshot {
 impl DefaultFormatter for DefaultGroup {
   fn format(&self, date: NaiveDate) -> String {
     let mut res = format!(
-      "[{}]   {}, {} - <b>стандартное</b> расписание <b>{}</b>\n\n",
+      "{} {}, {} - <b>стандартное</b> расписание <b>{}</b>\n\n",
       random_emoji(),
-      date.weekday_str(),
+      date.weekday_str_basic(),
       date.format("%d.%m.%Y"),
       self.name
     );
@@ -68,17 +68,18 @@ impl DefaultFormatter for Result<DefaultGroup, ApiError> {
   fn format(&self, date: NaiveDate) -> String {
     match self {
       Ok(d) => d.format(date),
-      Err(_) => format!("Нет стандартного расписания"),
+      Err(_) => format!("Стандартное расписания не задано для {} 😒", date.weekday_str()),
     }
   }
 }
 
 pub trait NaiveDateExt {
+  fn weekday_str_basic(&self) -> &str;
   fn weekday_str(&self) -> &str;
 }
 
 impl NaiveDateExt for NaiveDate {
-  fn weekday_str(&self) -> &str {
+  fn weekday_str_basic(&self) -> &str {
     match self.weekday() {
       Weekday::Mon => "Понедельник",
       Weekday::Tue => "Вторник",
@@ -89,15 +90,33 @@ impl NaiveDateExt for NaiveDate {
       Weekday::Sun => "Воскресенье",
     }
   }
+
+  fn weekday_str(&self) -> &str {
+    match self.weekday() {
+      Weekday::Mon => "понедельника",
+      Weekday::Tue => "вторника",
+      Weekday::Wed => "среды",
+      Weekday::Thu => "четверга",
+      Weekday::Fri => "пятницы",
+      Weekday::Sat => "субботы",
+      Weekday::Sun => "воскресенья",
+    }
+  }
 }
 
 fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> String {
   let mut res = match date == utils::now_date(0) {
-    true => format!("[{}]   Сегодня, {} [<code>{}</code>]\n\n", random_emoji(), date.format("%d.%m.%Y"), snapshot_uid),
-    false => format!(
-      "[{}]   {}, {} [<code>{}</code>]\n\n",
+    true => format!(
+      "{} {}, сегодня, {} [<code>{}</code>]\n\n",
       random_emoji(),
-      date.date_naive().weekday_str(),
+      date.date_naive().weekday_str_basic(),
+      date.format("%d.%m.%Y"),
+      snapshot_uid
+    ),
+    false => format!(
+      "{} {}, {} [<code>{}</code>]\n\n",
+      random_emoji(),
+      date.date_naive().weekday_str_basic(),
       date.format("%d.%m.%Y"),
       snapshot_uid
     ),
@@ -146,10 +165,6 @@ fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<S
   };
 
   res = format!("{}<b> · {}</b>", res, lesson.name);
-  res = match lesson.teacher.as_ref() {
-    Some(t) => format!("{} · {}", res, t),
-    None => res,
-  };
 
   res.push('\n');
   Some(res)

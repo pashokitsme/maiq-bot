@@ -16,18 +16,18 @@ chrono = { version = "0.4.23", features = ["serde"] }
 dotenvy = "0.15.6"
 lazy_static = "1.4.0"
 log = "0.4.17"
-maiq-shared = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.2.2" }
+maiq-shared = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.3.0" }
 mongodb = { version = "2.3.1", features = ["bson-chrono-0_4", "tokio-openssl"] }
-reqwest = { version = "0.11.13", features = ["json"] }
+reqwest = { version = "0.11.14", features = ["json"] }
 serde = { version = "1.0.152", features = ["serde_derive"] }
-serde_json = "1.0.91"
+serde_json = "1.0.93"
 teloxide = { version = "0.12", features = ["macros"] }
 thiserror = "1.0.38"
-tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "mio"] }
+tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros", "mio"] }
 openssl = { version = "0.10.45", features = ["vendored"] }
 openssl-sys = { version = "0.9.80", features = ["openssl-src", "vendored"] }
-async-trait = "0.1.61"
+async-trait = "0.1.64"
 fastrand = "1.8.0"
 bincode = "1.3.3"
 pretty_env_logger = "0.4.0"
-maiq-api-models = { git = "https://github.com/pashokitsme/maiq-web-api", version = "0.1.1" }
+maiq-api-models = { git = "https://github.com/pashokitsme/maiq-web-api", version = "0.1.3" }

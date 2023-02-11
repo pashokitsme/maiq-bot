@@ -28,6 +28,5 @@ async fn main() {
   let mut poller = Poller::new(bot_ref, mongo_ref).await;
   tokio::spawn(async move { poller.run().await });
 
-  let bot_ref = bot.clone();
-  bot::start(bot_ref, mongo).await
+  bot::start(bot, mongo).await
 }

@@ -6,13 +6,16 @@ use teloxide::{
   dptree as dp,
   prelude::Dispatcher,
   requests::Requester,
-  types::{Message, Update, UserId},
+  types::{CallbackQuery, Message, Update, UserId},
   utils::command::BotCommands as _,
   Bot,
 };
 
 use crate::{
-  bot::commands::{Command, DevCommand},
+  bot::{
+    callbacks::CallbackKind,
+    commands::{Command, DevCommand},
+  },
   db::MongoPool,
   env,
   error::BotError,
@@ -20,7 +23,7 @@ use crate::{
 
 pub mod notifier;
 
-// mod callbacks;
+mod callbacks;
 mod commands;
 mod context;
 mod format;
@@ -52,9 +55,7 @@ pub async fn start(bot: Bot, pool: MongoPool) {
     .set_my_commands(Command::bot_commands())
     .await
     .expect("Couldn't set bot commands");
-
   let me = bot.get_me().await.expect("Login error");
-
   bot.delete_webhook().await.expect("Couldn't delete webhook");
   info!("Logged in as {} [@{}]", me.full_name(), me.username());
   info!("Started");
@@ -81,16 +82,12 @@ fn dispatch_scheme() -> UpdateHandler<BotError> {
         .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
         .endpoint(dispatch::<DevCommand, Message>),
     );
-  // let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
+  let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
 
-  // dialogue::enter::<Update, GlobalStateStorage, State, _>()
-  //   .branch(cmds_handler)
-  //   .branch(callback_handler)
-  cmds_handler
+  dp::entry().branch(cmds_handler).branch(callback_handler)
 }
 
-/*
-async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool, state: GlobalState) -> BotResult {
+async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool) -> BotResult {
   let kind: CallbackKind = query
     .data
     .as_ref()
@@ -98,12 +95,11 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool, state:
     .unwrap_or(CallbackKind::Unknown);
 
   info!("Callback {:?} from {}", kind, query.from.full_name());
-  dispatch(kind, bot, query, mongo, state).await
+  dispatch(kind, bot, query, mongo).await
 }
-*/
 
-async fn dispatch<T: Dispatch<Kind = K>, K>(dispatchable: T, bot: Bot, kind: K, mongo: MongoPool) -> BotResult {
-  dispatchable.dispatch(bot, kind, mongo).await
+async fn dispatch<T: Dispatch<Kind = K>, K>(dispatchable: T, bot: Bot, kind: K, db: MongoPool) -> BotResult {
+  dispatchable.dispatch(bot, kind, db).await
 }
 
 fn get_next_day() -> chrono::NaiveDate {

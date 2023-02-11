@@ -33,7 +33,7 @@ pub async fn latest(fetch: Fetch) -> Result<Snapshot, ApiError> {
 }
 
 pub async fn snapshot<T: AsRef<str>>(uid: T) -> Result<Snapshot, ApiError> {
-  get(format!("{}/snapshot/{}", *API_HOST, uid.as_ref())).await
+  get(format!("{}/uid/{}", *API_HOST, uid.as_ref())).await
 }
 
 pub async fn default<T: AsRef<str>>(group: T, weekday: Weekday) -> Result<DefaultGroup, ApiError> {

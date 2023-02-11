@@ -14,7 +14,7 @@ use crate::{
   db::MongoPool,
 };
 
-use super::{BotResult, Dispatch, GlobalState};
+use super::{BotResult, Dispatch};
 
 #[derive(Debug)]
 pub struct Callback<T: Into<String>> {
@@ -30,6 +30,7 @@ pub enum CallbackKind {
 }
 
 impl<T: Into<String>> Callback<T> {
+  #[allow(dead_code)]
   pub fn new(text: T, kind: CallbackKind) -> InlineKeyboardButton {
     let data = String::from_utf8(bincode::serialize(&kind).unwrap()).unwrap();
     debug!("{:?} serialized to {:?}", kind, data);
@@ -41,7 +42,7 @@ impl<T: Into<String>> Callback<T> {
 impl Dispatch for CallbackKind {
   type Kind = CallbackQuery;
 
-  async fn dispatch(self, bot: Bot, q: Self::Kind, _mongo: MongoPool, _state: GlobalState) -> BotResult {
+  async fn dispatch(self, bot: Bot, q: Self::Kind, _mongo: MongoPool) -> BotResult {
     type K = CallbackKind;
     match self {
       K::Ok => ok(bot, q).await,
