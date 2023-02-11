@@ -1,8 +1,10 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveTime, Utc};
-use maiq_api_models::polling::SnapshotChanges;
-use maiq_shared::utils;
+use maiq_api_models::{
+  polling::SnapshotChanges,
+  utils::time::{now, now_date},
+};
 use teloxide::Bot;
 use tokio::time::sleep;
 
@@ -20,8 +22,8 @@ impl Poller {
 
   pub async fn run(&mut self) {
     loop {
-      if utils::now(0).time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
-        let wait_s = 7 * 60 * 60 - (utils::now(0).timestamp() - utils::now_date(0).timestamp()) as u64;
+      if now().time() < NaiveTime::from_hms_opt(6, 0, 0).unwrap() {
+        let wait_s = 7 * 60 * 60 - (now().timestamp() - now_date().timestamp()) as u64;
         info!("Sleeping due to the night for {}s", wait_s);
         sleep(Duration::from_secs(wait_s)).await;
       };
@@ -64,10 +66,8 @@ impl Poller {
   }
 
   async fn wait(&self, next_update: DateTime<Utc>) {
-    let now = utils::now(0);
-
     let wait = next_update
-      .signed_duration_since(now)
+      .signed_duration_since(now())
       .num_milliseconds()
       .clamp(1000 * 10, 1000 * 24 * 60 * 60) as u64;
 

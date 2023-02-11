@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use maiq_shared::{utils, Fetch};
+use maiq_api_models::utils::time::now;
+use maiq_shared::Fetch;
 use teloxide::{macros::BotCommands, types::Message, Bot};
 
 use crate::{
@@ -50,7 +51,7 @@ impl Dispatch for Command {
       Command::SetGroup(ref group) => ctx.set_group(group).await,
       Command::Today => ctx.reply_timetable(Fetch::Today).await,
       Command::Next => ctx.reply_timetable(Fetch::Next).await,
-      Command::DefaultToday => ctx.reply_default(utils::now(0).date_naive()).await,
+      Command::DefaultToday => ctx.reply_default(now().date_naive()).await,
       Command::DefaultNext => ctx.reply_default(crate::bot::get_next_day()).await,
     };
 

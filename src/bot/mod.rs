@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use maiq_api_models::utils;
+use maiq_api_models::utils::time::now_with_offset;
 use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt, UpdateHandler},
   dptree as dp,
@@ -103,9 +103,9 @@ async fn dispatch<T: Dispatch<Kind = K>, K>(dispatchable: T, bot: Bot, kind: K, 
 }
 
 fn get_next_day() -> chrono::NaiveDate {
-  let date = utils::now(1).date_naive();
+  let date = now_with_offset(1).date_naive();
   match chrono::Datelike::weekday(&date) == chrono::Weekday::Sun {
-    true => utils::now(2).date_naive(),
+    true => now_with_offset(2).date_naive(),
     false => date,
   }
 }

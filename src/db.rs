@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use maiq_shared::utils;
+use maiq_api_models::utils::time::now;
 use mongodb::{
   bson::{doc, DateTime},
   options::ClientOptions,
@@ -36,10 +36,8 @@ impl Notifiable {
 
 impl Settings {
   pub fn new(id: UserId) -> Self {
-    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(utils::now(0)), group: None }
+    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(now()), group: None }
   }
-
-  // pub fn group(&self) -> String {}
 }
 
 #[derive(Clone)]

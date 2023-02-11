@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc, Weekday};
+use maiq_api_models::utils::time::now_date;
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
-  utils, Group, Lesson, Snapshot,
+  Group, Lesson, Snapshot,
 };
 
 use crate::api::{self, ApiError};
@@ -105,7 +106,7 @@ impl NaiveDateExt for NaiveDate {
 }
 
 fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> String {
-  let mut res = match date == utils::now_date(0) {
+  let mut res = match date == now_date() {
     true => format!(
       "{} {}, сегодня, {} [<code>{}</code>]\n\n",
       random_emoji(),

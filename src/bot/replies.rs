@@ -1,4 +1,4 @@
-use maiq_api_models::{utils, Fetch};
+use maiq_api_models::{utils::time::now, Fetch};
 use teloxide::{
   payloads::SendMessageSetters,
   requests::Requester,
@@ -67,7 +67,7 @@ impl Context {
       .unwrap_or("UNSET".into());
 
     let date = match fetch {
-      Fetch::Today => utils::now(0).date_naive(),
+      Fetch::Today => now().date_naive(),
       Fetch::Next => get_next_day(),
     };
 
