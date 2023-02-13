@@ -1,3 +1,4 @@
+use chrono::{Datelike, NaiveDate};
 use maiq_api_wrapper::api;
 use maiq_shared::{utils::time::now, Fetch};
 use teloxide::{
@@ -6,9 +7,13 @@ use teloxide::{
   types::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode},
 };
 
-use crate::{bot::format::SnapshotFormatterExt, db::Settings};
+use crate::{
+  bot::format::{SnapshotFormatter, SnapshotFormatterExt},
+  db::Settings,
+  error::BotError,
+};
 
-use super::{context::Context, get_next_day, BotResult};
+use super::{context::Context, format::DefaultFormatter, get_next_day, BotResult};
 
 impl Context {
   pub async fn start(&self) -> BotResult {
@@ -76,6 +81,42 @@ impl Context {
       Ok(s) => self.reply(s.format_or_default(&*group, date).await).await,
       Err(_) => self.reply_default(date).await,
     }
+  }
+
+  pub async fn reply_default(&self, date: NaiveDate) -> BotResult {
+    match self.mongo.get_or_new(self.user_id()).await?.group {
+      Some(g) => self.reply(api::default(&g, date.weekday()).await.format(date)).await,
+      None => self.reply("Ты не указал группу").await.map(|_| ()),
+    }
+  }
+
+  pub async fn reply_dated_snapshot(&self, rawdate: &str) -> BotResult {
+    fn parse_date(rawdate: &str) -> Result<NaiveDate, ()> {
+      let mut slice = rawdate.split('.');
+      macro_rules! parse {
+        () => {
+          slice.next().and_then(|x: &str| x.parse().ok()).ok_or(())?
+        };
+      }
+      let (d, m, y) = (parse!(), parse!(), parse!());
+      NaiveDate::from_ymd_opt(y, m, d).ok_or(())
+    }
+
+    let group = match self.mongo.get_or_new(self.user_id()).await?.group {
+      Some(g) => g,
+      None => return self.reply("Ты не указал группу").await.map(|_| ()),
+    };
+
+    let date =
+      parse_date(rawdate).map_err(|_| BotError::invalid_command("/date", "/date [дата в формате d.m.Y]", "/date 11.02.2023"))?;
+
+    let r = match api::date(date).await?.format_group(&group) {
+      Ok(r) => r,
+      Err(r) => r,
+    };
+    self.reply(r).await?;
+
+    Ok(())
   }
 
   pub async fn dev_reply_user_list(&self) -> BotResult {

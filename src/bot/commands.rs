@@ -25,6 +25,9 @@ pub enum Command {
   #[command(description = "Стандартное расписание на завтра")]
   DefaultNext,
 
+  #[command(description = "Получить расписание по дате")]
+  Date(String),
+
   #[command(description = "Включить/выключить уведомления")]
   ToggleNotifications,
 
@@ -52,6 +55,7 @@ impl Dispatch for Command {
       Command::Next => ctx.reply_timetable(Fetch::Next).await,
       Command::DefaultToday => ctx.reply_default(now().date_naive()).await,
       Command::DefaultNext => ctx.reply_default(crate::bot::get_next_day()).await,
+      Command::Date(date) => ctx.reply_dated_snapshot(&date).await,
     };
 
     match result {
