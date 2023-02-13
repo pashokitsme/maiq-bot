@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use maiq_api_models::utils::time::now_with_offset;
+use maiq_shared::utils::time::now_with_offset;
 use teloxide::{
   dispatching::{HandlerExt, UpdateFilterExt, UpdateHandler},
   dptree as dp,

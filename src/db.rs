@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use maiq_api_models::utils::time::now;
+use maiq_shared::utils::time::now;
 use mongodb::{
   bson::{doc, DateTime},
   options::ClientOptions,

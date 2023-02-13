@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc, Weekday};
-use maiq_api_models::utils::time::now_date;
+use maiq_api_wrapper::api::{self, ApiError};
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
+  utils::time::now_date,
   Group, Lesson, Snapshot,
 };
-
-use crate::api::{self, ApiError};
 
 pub trait SnapshotFormatter {
   fn format_group(&self, name: &str) -> Result<String, String>;
@@ -69,7 +68,7 @@ impl DefaultFormatter for Result<DefaultGroup, ApiError> {
   fn format(&self, date: NaiveDate) -> String {
     match self {
       Ok(d) => d.format(date),
-      Err(_) => format!("Стандартное расписания не задано для {} 😒", date.weekday_str()),
+      Err(_) => format!("Стандартное расписание не задано для {} 😒", date.weekday_str()),
     }
   }
 }

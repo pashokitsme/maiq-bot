@@ -1,6 +1,6 @@
 use std::{future::IntoFuture, time::Duration};
 
-use maiq_api_models::polling::SnapshotChanges;
+use maiq_api_wrapper::polling::SnapshotChanges;
 use maiq_shared::Snapshot;
 use teloxide::{
   payloads::SendMessageSetters,

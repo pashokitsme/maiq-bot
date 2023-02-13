@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use maiq_api_models::utils::time::now;
-use maiq_shared::Fetch;
+use maiq_shared::{utils::time::now, Fetch};
 use teloxide::{macros::BotCommands, types::Message, Bot};
 
 use crate::{

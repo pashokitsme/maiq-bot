@@ -1,11 +1,12 @@
+use maiq_api_wrapper::api;
 use teloxide::dispatching::dialogue::InMemStorageError;
 use thiserror::Error;
 
-use crate::{api, db::MongoError};
+use crate::db::MongoError;
 
 #[derive(Error, Debug)]
 pub enum BotError {
-  #[error("✖️ Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>")]
+  #[error("Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>")]
   InvalidCommandUsage { command: String, help: String, example: String },
 
   #[error("❗️ Ошибка API:\n<code>{1}</code>")]

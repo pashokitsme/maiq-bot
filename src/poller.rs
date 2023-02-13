@@ -1,14 +1,12 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveTime, Utc};
-use maiq_api_models::{
-  polling::SnapshotChanges,
-  utils::time::{now, now_date},
-};
+use maiq_api_wrapper::{api, polling::SnapshotChanges};
+use maiq_shared::utils::time::*;
 use teloxide::Bot;
 use tokio::time::sleep;
 
-use crate::{api, bot::notifier, db::MongoPool};
+use crate::{bot::notifier, db::MongoPool};
 
 pub struct Poller {
   bot: Bot,

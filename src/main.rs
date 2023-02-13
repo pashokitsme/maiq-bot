@@ -7,7 +7,6 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 
-mod api;
 mod bot;
 mod db;
 mod env;

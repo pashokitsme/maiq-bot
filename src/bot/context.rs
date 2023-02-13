@@ -1,4 +1,5 @@
 use chrono::{Datelike, NaiveDate};
+use maiq_api_wrapper::api;
 use std::ops::Deref;
 use teloxide::{
   payloads::SendMessageSetters,
@@ -8,7 +9,7 @@ use teloxide::{
 };
 
 use super::format::DefaultFormatter;
-use crate::{api, bot::BotResult, db::MongoPool, error::BotError};
+use crate::{bot::BotResult, db::MongoPool, error::BotError};
 
 pub struct Context {
   bot: Bot,
@@ -73,7 +74,7 @@ impl Context {
 
   pub async fn reply_default(&self, date: NaiveDate) -> BotResult {
     match self.mongo.get_or_new(self.user_id()).await?.group {
-      Some(g) => self.reply(api::default(g, date.weekday()).await.format(date)).await,
+      Some(g) => self.reply(api::default(&g, date.weekday()).await.format(date)).await,
       None => self.reply("Ты не указал группу").await.map(|_| ()),
     }
   }

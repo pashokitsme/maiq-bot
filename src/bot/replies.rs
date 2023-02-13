@@ -1,11 +1,12 @@
-use maiq_api_models::{utils::time::now, Fetch};
+use maiq_api_wrapper::api;
+use maiq_shared::{utils::time::now, Fetch};
 use teloxide::{
   payloads::SendMessageSetters,
   requests::Requester,
   types::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode},
 };
 
-use crate::{api, bot::format::SnapshotFormatterExt, db::Settings};
+use crate::{bot::format::SnapshotFormatterExt, db::Settings};
 
 use super::{context::Context, get_next_day, BotResult};
 
