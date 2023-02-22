@@ -121,21 +121,23 @@ fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> St
       snapshot_uid
     ),
   };
+
   group.lessons.iter().for_each(|l| res.push_str(&format_lesson(&l)));
   res
 }
 
 fn format_lesson(lesson: &Lesson) -> String {
   let mut res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("<b>#{}</b> {}", lesson.num, classroom),
-    None => return format!("<b>#{}</b> {}\n", lesson.num, lesson.name),
+    Some(classroom) => format!("<b>#{}</b> {} ", lesson.num, classroom),
+    None => format!("<b>#{}</b> ", lesson.num),
   };
+
   res = match lesson.subgroup {
-    Some(sub) => format!("{} · п/г {}", res, sub),
+    Some(sub) => format!("{}· п/г {} ", res, sub),
     None => res,
   };
-  res = format!("{}<b> · {}</b>\n", res, lesson.name);
 
+  res = format!("{}<b>· {}</b>\n", res, lesson.name);
   res
 }
 
