@@ -47,15 +47,17 @@ pub async fn send_to_all(bot: &Bot, msg: &str, ids: &[i64]) {
   info!("Sending message to users {:?} ({})..", ids, ids.len());
   for (idx, handle) in handles.join_next().await.iter().enumerate() {
     if let Err(err) = handle {
-      warn!("Error occured while notifying users at [{}]: {}", idx, err)
+      warn!("Error occured while notifying users at [{}]: {}", idx, err);
     }
 
-    if let Err(err) = handle.as_ref().unwrap() {
-      warn!("Error occured while notifying users at [{}]: {}", idx, err)
+    if let Err(req_err) = handle.as_ref().unwrap() {
+      warn!("Request error occured while notifying users at [{}]: {}", idx, req_err);
     }
 
     if idx % 25 == 0 {
       tokio::time::sleep(Duration::from_secs(1)).await
     }
   }
+
+  info!("Sending done");
 }
