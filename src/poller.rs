@@ -14,7 +14,7 @@ pub struct Poller {
 }
 
 impl Poller {
-  pub async fn new(bot: Bot, mongo: MongoPool) -> Self {
+  pub fn new(bot: Bot, mongo: MongoPool) -> Self {
     Self { bot, mongo }
   }
 

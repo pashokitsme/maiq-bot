@@ -2,7 +2,7 @@ use std::ops::Deref;
 use teloxide::{
   payloads::SendMessageSetters,
   requests::Requester,
-  types::{ChatId, Message, ParseMode, User, UserId},
+  types::{ChatId, Message, ParseMode, UserId},
   Bot,
 };
 
@@ -11,7 +11,6 @@ use crate::{bot::BotResult, db::MongoPool, error::BotError};
 pub struct Context {
   bot: Bot,
   pub msg: Message,
-  pub user: User,
   pub mongo: MongoPool,
 }
 
@@ -25,7 +24,7 @@ impl Deref for Context {
 
 impl Context {
   pub fn new(bot: Bot, msg: Message, mongo: MongoPool) -> Self {
-    Self { bot, user: msg.from().unwrap().clone(), msg, mongo }
+    Self { bot, msg, mongo }
   }
 
   pub fn chat_id(&self) -> ChatId {

@@ -18,7 +18,7 @@ use super::{context::Context, format::DefaultFormatter, get_next_day, BotResult}
 impl Context {
   pub async fn start(&self) -> BotResult {
     self.mongo.get_or_new(self.user_id()).await?;
-    let username = &self.user.first_name;
+    let username = &self.msg.from().unwrap().first_name;
     self
       .reply(format!(
         r#"Привет, <b>{username}</b>! 🎉

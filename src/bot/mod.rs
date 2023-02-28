@@ -82,6 +82,7 @@ fn dispatch_scheme() -> UpdateHandler<BotError> {
         .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
         .endpoint(dispatch::<DevCommand, Message>),
     );
+    
   let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
 
   dp::entry().branch(cmds_handler).branch(callback_handler)
