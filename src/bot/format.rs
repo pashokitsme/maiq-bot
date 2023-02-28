@@ -7,6 +7,8 @@ use maiq_shared::{
   Group, Lesson, Snapshot,
 };
 
+use crate::error::{BotError, ReadableError};
+
 pub trait SnapshotFormatter {
   fn format_group(&self, name: &str) -> Result<String, String>;
 }
@@ -17,7 +19,7 @@ pub trait SnapshotFormatterExt {
 }
 
 pub trait DefaultFormatter {
-  fn format(&self, date: NaiveDate) -> String;
+  fn format(self, date: NaiveDate) -> String;
 }
 
 impl SnapshotFormatter for Snapshot {
@@ -46,7 +48,7 @@ impl SnapshotFormatterExt for Snapshot {
 }
 
 impl DefaultFormatter for DefaultGroup {
-  fn format(&self, date: NaiveDate) -> String {
+  fn format(self, date: NaiveDate) -> String {
     let mut res = format!(
       "{} {}, {} - <b>стандартное</b> расписание <b>{}</b>\n\n",
       random_emoji(),
@@ -65,10 +67,17 @@ impl DefaultFormatter for DefaultGroup {
 }
 
 impl DefaultFormatter for Result<DefaultGroup, ApiError> {
-  fn format(&self, date: NaiveDate) -> String {
+  fn format(self, date: NaiveDate) -> String {
     match self {
       Ok(d) => d.format(date),
-      Err(_) => format!("Стандартное расписание не задано для {} 😒", date.weekday_str()),
+      Err(err) => match &*err.cause {
+        "default_not_found" => format!("Стандартное расписание не задано для {} 😒", date.weekday_str()),
+        _ => {
+          let err = BotError::from(err);
+          error!("{err}");
+          err.readable()
+        }
+      },
     }
   }
 }

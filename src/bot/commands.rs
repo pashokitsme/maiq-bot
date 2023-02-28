@@ -4,7 +4,7 @@ use teloxide::{macros::BotCommands, types::Message, Bot};
 
 use crate::{
   bot::{context::Context, BotResult, Dispatch},
-  db::MongoPool,
+  db::MongoPool, error::ReadableError,
 };
 
 #[derive(BotCommands, Clone, Debug)]
@@ -42,11 +42,11 @@ pub enum Command {
 impl Dispatch for Command {
   type Kind = Message;
 
-  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
+  async fn dispatch(&self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
     info!("Command {:?} from {} [{}]", self, kind.from().unwrap().full_name(), kind.from().unwrap().id.0);
     let ctx = Context::new(bot, kind, mongo);
 
-    let result = match self {
+    let res = match self {
       Command::Start => ctx.start().await,
       Command::About => ctx.reply_about().await,
       Command::ToggleNotifications => ctx.toggle_notifications().await,
@@ -58,13 +58,11 @@ impl Dispatch for Command {
       Command::Date(date) => ctx.reply_dated_snapshot(&date).await,
     };
 
-    match result {
-      Ok(_) => Ok(()),
-      Err(err) => {
-        error!("{}", err);
-        ctx.reply(err.to_string()).await.map(|_| ())
-      }
+    if let Err(ref err) = res {
+      ctx.reply(err.readable()).await?
     }
+
+    res
   }
 }
 
@@ -82,7 +80,7 @@ pub enum DevCommand {
 impl Dispatch for DevCommand {
   type Kind = Message;
 
-  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
+  async fn dispatch(&self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
     type Cmd = DevCommand;
     let ctx = Context::new(bot, kind, mongo);
 

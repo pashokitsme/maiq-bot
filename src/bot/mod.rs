@@ -47,7 +47,7 @@ pub enum State {
 trait Dispatch {
   type Kind;
 
-  async fn dispatch(self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult;
+  async fn dispatch(&self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult;
 }
 
 pub async fn start(bot: Bot, pool: MongoPool) {
@@ -82,7 +82,7 @@ fn dispatch_scheme() -> UpdateHandler<BotError> {
         .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
         .endpoint(dispatch::<DevCommand, Message>),
     );
-    
+
   let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
 
   dp::entry().branch(cmds_handler).branch(callback_handler)
@@ -100,7 +100,10 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool) -> Bot
 }
 
 async fn dispatch<T: Dispatch<Kind = K>, K>(dispatchable: T, bot: Bot, kind: K, db: MongoPool) -> BotResult {
-  dispatchable.dispatch(bot, kind, db).await
+  if let Err(ref err) = dispatchable.dispatch(bot, kind, db).await {
+    error!("{err}");
+  }
+  Ok(())
 }
 
 fn get_next_day() -> chrono::NaiveDate {

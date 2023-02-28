@@ -4,25 +4,46 @@ use thiserror::Error;
 
 use crate::db::MongoError;
 
+pub trait ReadableError {
+  fn readable(&self) -> String;
+}
+
 #[derive(Error, Debug)]
 pub enum BotError {
-  #[error("Неправильное использование команды <code>{command}</code>\nПомощь <b>></b> <code>{help}</code>\nПример <b>></b> <code>{example}</code>")]
+  #[error("{command}: invalid command usage")]
   InvalidCommandUsage { command: String, help: String, example: String },
 
-  #[error("❗️ Ошибка API:\n<code>{1}</code>")]
+  #[error("api-error: {0}: {1}")]
   ApiError(String, String),
 
-  #[error("❗️ Ошибка MongoDB:\n<code>{0}</code>")]
+  #[error("mongo-db error: {0}")]
   MongoError(String),
 
-  #[error("☠️ Ошибка TeloxideAPI:\n<code>{0}</code>")]
+  #[error("teloxide-api error: {0}")]
   TeloxideApiError(teloxide::ApiError),
 
-  #[error("☠️ Ошибка TeloxideRequest:\n<code>{0}</code>")]
+  #[error("teloxide-request error: {0}")]
   TeloxideRequestError(teloxide::RequestError),
 
-  #[error("☠️ Ошибка InMemStorage:\n<code>{0}</code>")]
+  #[error("storage-error: {0}")]
   TeloxideInMemStorageError(InMemStorageError),
+}
+
+impl ReadableError for BotError {
+  fn readable(&self) -> String {
+    match self {
+      BotError::InvalidCommandUsage { command, help, example } => {
+        format!(
+          "Неправильное использование команды <code>{command}</code>\nИспользование: {help}\nПример: <code>{example}</code>"
+        )
+      }
+      BotError::ApiError(err, desc) => format!("Ошибка API 😓\nПричина: {err}.\nОписание: {desc}"),
+      BotError::MongoError(err) => format!("Ошибка MongoDB 😓.\nСообщение: {err}"),
+      BotError::TeloxideApiError(err) => format!("Ошибка Teloxide API 😓.\nСообщение: {err}"),
+      BotError::TeloxideRequestError(err) => format!("Ошибка Teloxide Request 😓.\nСообщение: {err}"),
+      BotError::TeloxideInMemStorageError(err) => format!("Ошибка InMemStorage 😓.\nСообщение: {err}"),
+    }
+  }
 }
 
 impl BotError {

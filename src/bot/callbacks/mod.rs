@@ -42,12 +42,13 @@ impl<T: Into<String>> Callback<T> {
 impl Dispatch for CallbackKind {
   type Kind = CallbackQuery;
 
-  async fn dispatch(self, bot: Bot, q: Self::Kind, _mongo: MongoPool) -> BotResult {
+  async fn dispatch(&self, bot: Bot, q: Self::Kind, _mongo: MongoPool) -> BotResult {
     type K = CallbackKind;
     match self {
       K::Ok => ok(bot, q).await,
       K::Del => delete_message(bot, q).await,
       K::Unknown => {
+        error!("Unknown callback id {} received", q.id);
         bot
           .answer_callback_query(q.id)
           .text("Я не знаю, что делать с этой кнопкой 🤕")
