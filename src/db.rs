@@ -73,7 +73,7 @@ impl MongoPool {
 
     let user = Settings::new(id);
     self.settings.insert_one(&user, None).await?;
-    info!("New user with id {}", user.id);
+    info!("New user-id {}", user.id);
     Ok(user)
   }
 
@@ -84,6 +84,14 @@ impl MongoPool {
         .find_one_and_replace(doc! { "id": new_settings.id }, new_settings, None)
         .await?,
     )
+  }
+
+  pub async fn delete(&self, id: UserId) -> Result<(), MongoError> {
+    self.settings.delete_one(doc! { "id": id.0 as i64}, None).await?;
+
+    info!("Deleted user-id {}", id.0);
+
+    Ok(())
   }
 
   pub async fn notifiables(&self) -> Result<Vec<Notifiable>, BotError> {
