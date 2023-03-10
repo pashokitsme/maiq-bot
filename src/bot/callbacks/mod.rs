@@ -30,8 +30,8 @@ pub enum CallbackKind {
 }
 
 impl<T: Into<String>> Callback<T> {
-  #[allow(dead_code)]
-  pub fn new(text: T, kind: CallbackKind) -> InlineKeyboardButton {
+  #[allow(dead_code)] // todo: disallow
+  pub fn button(text: T, kind: CallbackKind) -> InlineKeyboardButton {
     let data = String::from_utf8(bincode::serialize(&kind).unwrap()).unwrap();
     debug!("{:?} serialized to {:?}", kind, data);
     InlineKeyboardButton::callback(text, data)

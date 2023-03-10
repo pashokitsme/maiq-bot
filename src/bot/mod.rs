@@ -92,7 +92,7 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool) -> Bot
   let kind: CallbackKind = query
     .data
     .as_ref()
-    .and_then(|data| bincode::deserialize(&data.as_bytes()).ok())
+    .and_then(|data| bincode::deserialize(data.as_bytes()).ok())
     .unwrap_or(CallbackKind::Unknown);
 
   info!("Callback {:?} from {}", kind, query.from.full_name());

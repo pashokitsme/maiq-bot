@@ -78,19 +78,16 @@ impl MongoPool {
   }
 
   pub async fn update(&self, new_settings: &Settings) -> Result<Option<Settings>, MongoError> {
-    Ok(
-      self
-        .settings
-        .find_one_and_replace(doc! { "id": new_settings.id }, new_settings, None)
-        .await?,
-    )
+    self
+      .settings
+      .find_one_and_replace(doc! { "id": new_settings.id }, new_settings, None)
+      .await
   }
 
+  #[allow(dead_code)] // todo: disallow
   pub async fn delete(&self, id: UserId) -> Result<(), MongoError> {
     self.settings.delete_one(doc! { "id": id.0 as i64}, None).await?;
-
     info!("Deleted user-id {}", id.0);
-
     Ok(())
   }
 
@@ -110,8 +107,8 @@ impl MongoPool {
         continue;
       }
 
-      let id = id.unwrap().clone();
-      let group = group.unwrap().clone();
+      let id = id.unwrap();
+      let group = group.unwrap();
 
       match notifies.iter_mut().find(|n| n.group == group) {
         Some(n) => n.user_ids.push(id),

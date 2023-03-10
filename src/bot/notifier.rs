@@ -24,10 +24,10 @@ pub async fn notify_update(bot: &Bot, mongo: &MongoPool, changes: &SnapshotChang
     }
 
     let body = snapshot
-      .format_or_default(&*notifiable.group, snapshot.date.date_naive())
+      .format_or_default(&notifiable.group, snapshot.date.date_naive())
       .await;
 
-    send_to_all(&bot, &*body, &notifiable.user_ids.as_slice()).await;
+    send_to_all(bot, &body, notifiable.user_ids.as_slice()).await;
   }
   Ok(())
 }

@@ -57,7 +57,7 @@ impl DefaultFormatter for DefaultGroup {
       self.name
     );
     self.lessons.iter().for_each(|l| {
-      if let Some(lesson) = &format_default_lesson(&l, date.iso_week().week() % 2 != 0) {
+      if let Some(lesson) = &format_default_lesson(l, date.iso_week().week() % 2 != 0) {
         res.push_str(lesson)
       }
     });
@@ -131,7 +131,7 @@ fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> St
     ),
   };
 
-  group.lessons.iter().for_each(|l| res.push_str(&format_lesson(&l)));
+  group.lessons.iter().for_each(|l| res.push_str(&format_lesson(l)));
   res
 }
 

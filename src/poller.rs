@@ -46,7 +46,7 @@ impl Poller {
       return;
     }
 
-    self.notify(&new.uid.as_ref().unwrap(), new).await
+    self.notify(new.uid.as_ref().unwrap(), new).await
   }
 
   async fn notify(&self, uid: &str, changes: &SnapshotChanges) {

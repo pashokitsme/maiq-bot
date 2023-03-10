@@ -79,7 +79,7 @@ impl Context {
     };
 
     match api::latest(fetch).await {
-      Ok(s) => self.reply(s.format_or_default(&*group, date).await).await,
+      Ok(s) => self.reply(s.format_or_default(&group, date).await).await,
       Err(_) => self.reply_default(date).await,
     }
   }

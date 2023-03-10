@@ -32,7 +32,7 @@ impl Context {
   }
 
   pub fn user_id(&self) -> UserId {
-    self.msg.from().and_then(|f| Some(f.id)).unwrap_or(UserId(0))
+    self.msg.from().map(|f| f.id).unwrap_or(UserId(0))
   }
 
   pub async fn reply<T: Into<String>>(&self, text: T) -> Result<(), BotError> {
