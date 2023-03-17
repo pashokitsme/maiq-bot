@@ -13,7 +13,12 @@ use crate::{
   error::BotError,
 };
 
-use super::{context::Context, format::DefaultFormatter, get_next_day, BotResult};
+use super::{
+  callbacks::{Callback, CallbackKind},
+  context::Context,
+  format::DefaultFormatter,
+  get_next_day, BotResult,
+};
 
 impl Context {
   pub async fn start(&self) -> BotResult {
@@ -53,6 +58,8 @@ impl Context {
 
   · Можно отключить/включить уведомления при помощи /toggle_notifications.
 
+  · Бота можно добавить в чат, команды работать будут, но уведомления - нет
+  
   · Если вместо названия пар написано <b>По расписанию</b>, значит нужно заполнить стандартное расписание, спрашивай <a href="https://t.me/pashokitsme">тут</a>.
 
   · [<code>g5q98alka3</code>] - это уникальный ID расписания (всего или группы, показывается всего), по нему определяются изменения. В конечном итоге за один день остаётся одна запись последней версии, другие (после 29.01.23) заменяются. По сути - уже не очень то нужнен для отображения.
@@ -65,12 +72,12 @@ impl Context {
   }
 
   pub async fn reply_timetable(&self, fetch: Fetch) -> BotResult {
-    let group = self
-      .mongo
-      .get_or_new(self.user_id())
-      .await?
-      .group
-      .unwrap_or("UNSET".into());
+    let group = self.mongo.get_or_new(self.user_id()).await?.group;
+
+    let group = match group {
+      Some(g) => g,
+      None => return self.reply("Ты не указал группу").await.map(|_| ()),
+    };
 
     let date = match fetch {
       Fetch::Today => now().date_naive(),
@@ -140,6 +147,25 @@ impl Context {
     let body = format!("Всего: <b>{}</b>\n\n{}", users.len(), users.iter().map(format).collect::<String>());
 
     self.reply(body).await?;
+    Ok(())
+  }
+
+  pub async fn dev_send_broadcast_agreement(&self, body: &String) -> BotResult {
+    if body.is_empty() {
+      return self.reply("Сообщение пустое").await.map(|_| ());
+    }
+    let buttons = vec![vec![Callback::button("X", CallbackKind::Del), Callback::button("OK", CallbackKind::SendBroadcast)]];
+    let reply_markup = InlineKeyboardMarkup::new(buttons);
+    self
+      .send_message(self.user_id(), body)
+      .reply_markup(reply_markup)
+      .await?;
+
+    self
+      .send_message(self.user_id(), format!("Превью:\n{}", body))
+      .parse_mode(ParseMode::Html)
+      .reply_markup(InlineKeyboardMarkup::new(vec![vec![Callback::button("X", CallbackKind::Del)]]))
+      .await?;
     Ok(())
   }
 }

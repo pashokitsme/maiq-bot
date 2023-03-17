@@ -4,7 +4,8 @@ use teloxide::{macros::BotCommands, types::Message, Bot};
 
 use crate::{
   bot::{context::Context, BotResult, Dispatch},
-  db::MongoPool, error::ReadableError,
+  db::MongoPool,
+  error::ReadableError,
 };
 
 #[derive(BotCommands, Clone, Debug)]
@@ -74,6 +75,9 @@ pub enum DevCommand {
 
   #[command(rename = "dev_userlist", description = "")]
   DevUserList,
+
+  #[command(description = "")]
+  Broadcast(String),
 }
 
 #[async_trait]
@@ -81,12 +85,12 @@ impl Dispatch for DevCommand {
   type Kind = Message;
 
   async fn dispatch(&self, bot: Bot, kind: Self::Kind, mongo: MongoPool) -> BotResult {
-    type Cmd = DevCommand;
     let ctx = Context::new(bot, kind, mongo);
 
     match self {
-      Cmd::DevNotifiables => ctx.reply(format!("{:?}", ctx.mongo.notifiables().await?)).await?,
-      Cmd::DevUserList => ctx.dev_reply_user_list().await?,
+      DevCommand::DevNotifiables => ctx.reply(format!("{:?}", ctx.mongo.notifiables().await?)).await?,
+      DevCommand::DevUserList => ctx.dev_reply_user_list().await?,
+      DevCommand::Broadcast(body) => ctx.dev_send_broadcast_agreement(body).await?,
     };
     Ok(())
   }

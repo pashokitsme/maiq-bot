@@ -128,4 +128,22 @@ impl MongoPool {
 
     Ok(result)
   }
+
+  pub async fn fetch_all_notifiable_ids(&self) -> Result<Vec<i64>, BotError> {
+    let mut result = vec![];
+    let mut cur = self
+      .settings
+      .find(doc! { "is_notifications_enabled": true }, None)
+      .await?;
+
+    while cur.advance().await? {
+      let id = match cur.current().get_i64("id") {
+        Ok(id) => id,
+        Err(_) => continue,
+      };
+
+      result.push(id);
+    }
+    Ok(result)
+  }
 }
