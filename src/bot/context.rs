@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use teloxide::{
-  payloads::SendMessageSetters,
-  requests::Requester,
+  payloads::{SendMessage, SendMessageSetters},
+  requests::{JsonRequest, Requester},
   types::{ChatId, Message, ParseMode, UserId},
   Bot,
 };
@@ -43,6 +43,14 @@ impl Context {
       .disable_web_page_preview(true)
       .await?;
     Ok(())
+  }
+
+  pub fn reply_ex<T: Into<String>>(&self, text: T) -> JsonRequest<SendMessage> {
+    self
+      .bot
+      .send_message(self.chat_id(), text)
+      .parse_mode(ParseMode::Html)
+      .disable_web_page_preview(true)
   }
 
   pub async fn toggle_notifications(&self) -> BotResult {

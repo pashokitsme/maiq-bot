@@ -154,6 +154,22 @@ impl Context {
     if body.is_empty() {
       return self.reply("Сообщение пустое").await.map(|_| ());
     }
+    let preview = self
+      .reply_ex(format!("Превью:\n{}", body))
+      .reply_markup(InlineKeyboardMarkup::new(vec![vec![Callback::button("X", CallbackKind::Del)]]))
+      .await;
+
+    match preview {
+      Ok(_) => (),
+      Err(err) => {
+        self
+          .reply_ex(err.to_string())
+          .reply_markup(InlineKeyboardMarkup::new(vec![vec![Callback::button("X", CallbackKind::Del)]]))
+          .await?;
+        return Ok(());
+      }
+    }
+
     let buttons = vec![vec![Callback::button("X", CallbackKind::Del), Callback::button("OK", CallbackKind::SendBroadcast)]];
     let reply_markup = InlineKeyboardMarkup::new(buttons);
     self
@@ -161,11 +177,6 @@ impl Context {
       .reply_markup(reply_markup)
       .await?;
 
-    self
-      .send_message(self.user_id(), format!("Превью:\n{}", body))
-      .parse_mode(ParseMode::Html)
-      .reply_markup(InlineKeyboardMarkup::new(vec![vec![Callback::button("X", CallbackKind::Del)]]))
-      .await?;
     Ok(())
   }
 }
