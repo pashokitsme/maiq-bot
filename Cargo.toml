@@ -9,7 +9,7 @@ edition = "2021"
 [profile.release]
 strip = true
 lto = true
-opt-level = 2
+opt-level = 3
 
 [dependencies]
 chrono = { version = "0.4.23", features = ["serde"] }
