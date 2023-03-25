@@ -20,6 +20,12 @@ use super::{
   get_next_day, BotResult,
 };
 
+macro_rules! url_buttons {
+  ($(($(($name: literal, $url: literal)),*)),*) => {
+    InlineKeyboardMarkup::new(vec![$(vec![$(InlineKeyboardButton::url($name, reqwest::Url::parse($url).unwrap())),* ]),* ])
+  };
+}
+
 impl Context {
   pub async fn start(&self) -> BotResult {
     self.mongo.get_or_new(self.user_id()).await?;
@@ -39,20 +45,16 @@ impl Context {
   }
 
   pub async fn reply_about(&self) -> BotResult {
-    macro_rules! url_buttons_column {
-        ($(($name: literal, $url: literal)),*) => {
-          InlineKeyboardMarkup::new(vec![$(vec![InlineKeyboardButton::url($name, reqwest::Url::parse($url).unwrap()); 1]),*])
-        };
-      }
-
-    let markup = url_buttons_column!(("API docs", "https://github.com/pashokitsme/maiq-web-api"));
-
     self
         .send_message(
           self.chat_id(),
           r#"<b>Информация</b>
   
   · Код проекта лежит на <a href="https://github.com/pashokitsme">гитхабе</a> и разделён на 3 репозитория. Жду 🌟 и/или пулл реквесты 
+
+  · Обращайте внимание на дату расписания - если она неправильная, то скорее всего и само расписание спарсилось с ошибками.
+
+  · Ссылки можно увидеть, введя команду /links
 
   · Изменить свою группу можно при помощи команды /set_group. В аргументе нужно указать её название, такое же, как и в расписании. 
 
@@ -66,8 +68,23 @@ impl Context {
   "#,
         )
         .parse_mode(ParseMode::Html)
-        .reply_markup(markup)
         .await?;
+    Ok(())
+  }
+
+  pub async fn reply_links(&self) -> BotResult {
+    let markup = url_buttons!(
+      (("Сегодня", "https://rsp.chemk.org/4korp/today.htm"), ("Завтра", "https://rsp.chemk.org/4korp/tomorrow.htm")),
+      (("tg: по всем вопросам", "https://t.me/pashokitsme")),
+      (("gh: bot", "https://github.com/pashokitsme/maiq-bot"), ("gh: backend", "https://github.com/pashokitsme/maiq-web-api")),
+      (
+        ("gh: parser", "https://github.com/pashokitsme/maiq-parser"),
+        ("gh: defaults", "https://github.com/pashokitsme/maiq-defaults")
+      )
+    );
+
+    self.reply_ex("Ссылки 💢").reply_markup(markup).await?;
+
     Ok(())
   }
 

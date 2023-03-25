@@ -147,6 +147,9 @@ fn format_lesson(lesson: &Lesson) -> String {
   };
 
   res = format!("{}<b>· {}</b>\n", res, lesson.name);
+  if let Some(teacher) = lesson.teacher.as_ref() {
+    res = format!("{} · {}", res, teacher);
+  }
   res
 }
 
@@ -176,6 +179,9 @@ fn format_default_lesson(lesson: &DefaultLesson, is_even_week: bool) -> Option<S
   };
 
   res = format!("{}<b> · {}</b>", res, lesson.name);
+  if let Some(teacher) = lesson.teacher.as_ref() {
+    res = format!("{} · {}", res, teacher);
+  }
 
   res.push('\n');
   Some(res)

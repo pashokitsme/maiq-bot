@@ -20,6 +20,9 @@ pub enum Command {
   #[command(description = "Информация")]
   About,
 
+  #[command(description = "Ссылки")]
+  Links,
+
   #[command(description = "Стандартное расписание на сегодня")]
   DefaultToday,
 
@@ -50,6 +53,7 @@ impl Dispatch for Command {
     let res = match self {
       Command::Start => ctx.start().await,
       Command::About => ctx.reply_about().await,
+      Command::Links => ctx.reply_links().await,
       Command::ToggleNotifications => ctx.toggle_notifications().await,
       Command::SetGroup(ref group) => ctx.set_group(group).await,
       Command::Today => ctx.reply_timetable(Fetch::Today).await,
