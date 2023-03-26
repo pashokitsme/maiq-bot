@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use maiq_api_wrapper::api;
+use maiq_api_wrapper as api;
 use maiq_shared::{utils::time::now, Fetch};
 use teloxide::{
   payloads::SendMessageSetters,

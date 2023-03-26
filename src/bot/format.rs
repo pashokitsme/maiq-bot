@@ -1,6 +1,7 @@
+use api::ApiError;
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc, Weekday};
-use maiq_api_wrapper::api::{self, ApiError};
+use maiq_api_wrapper as api;
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
   utils::time::now_date,

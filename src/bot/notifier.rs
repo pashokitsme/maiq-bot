@@ -1,6 +1,5 @@
 use std::{future::IntoFuture, time::Duration};
 
-use maiq_api_wrapper::polling::SnapshotChanges;
 use maiq_shared::Snapshot;
 use teloxide::{
   payloads::SendMessageSetters,
@@ -12,15 +11,12 @@ use tokio::task::JoinSet;
 
 use crate::{bot::format::SnapshotFormatterExt, db::MongoPool, error::BotError};
 
-pub async fn notify_update(bot: &Bot, mongo: &MongoPool, changes: &SnapshotChanges, snapshot: Snapshot) -> Result<(), BotError> {
-  info!("Changes: {:?}", changes);
+pub async fn notify_update(bot: &Bot, mongo: &MongoPool, snapshot: Snapshot, changes: Vec<String>) -> Result<(), BotError> {
+  info!("Changed groups: {:?}", changes);
   let notifiables = mongo.notifiables().await?;
-
   for notifiable in notifiables {
-    match changes.groups.get(&*notifiable.group) {
-      Some(kind) if kind.is_same() => continue,
-      None => continue,
-      _ => (),
+    if !changes.contains(&notifiable.group) {
+      continue;
     }
 
     let body = snapshot

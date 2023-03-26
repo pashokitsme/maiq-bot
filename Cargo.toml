@@ -15,7 +15,7 @@ opt-level = 2
 chrono = { version = "0.4.23", features = ["serde"] }
 dotenvy = "0.15.6"
 log = "0.4.17"
-maiq-shared = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.3.0" }
+maiq-shared = { git = "https://github.com/pashokitsme/maiq-parser", branch="dev-new-changes-resolving", version = "0.3.0" }
 mongodb = { version = "2.3.1", features = ["bson-chrono-0_4", "tokio-openssl"] }
 reqwest = { version = "0.11.14", features = ["json"] }
 serde = { version = "1.0.152", features = ["serde_derive"] }
@@ -29,5 +29,5 @@ async-trait = "0.1.64"
 fastrand = "1.8.0"
 bincode = "1.3.3"
 pretty_env_logger = "0.4.0"
-maiq-api-wrapper = { git = "https://github.com/pashokitsme/maiq-web-api", version = "0.1.3", features = ["reqwest"] }
+maiq-api-wrapper = { git = "https://github.com/pashokitsme/maiq-web-api", version = "0.1.3", branch = "dev" }
 lazy_static = "1.4.0"
