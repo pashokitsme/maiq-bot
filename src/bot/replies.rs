@@ -22,7 +22,7 @@ use super::{
 
 macro_rules! url_buttons {
   ($(($(($name: literal, $url: literal)),*)),*) => {
-    InlineKeyboardMarkup::new(vec![$(vec![$(InlineKeyboardButton::url($name, reqwest::Url::parse($url).unwrap())),* ]),* ])
+    InlineKeyboardMarkup::new(vec![$(vec![$(InlineKeyboardButton::url($name, reqwest::Url::parse($url).unwrap())),*]),*])
   };
 }
 
