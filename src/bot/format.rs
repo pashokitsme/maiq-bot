@@ -42,14 +42,13 @@ impl SnapshotFormatter for Snapshot {
       self.uid
     );
 
-    let eq = |l: &&Lesson| l.teacher.is_some() && l.teacher.as_ref().unwrap().eq(name);
+    self
+      .groups
+      .iter()
+      .flat_map(|g| g.lessons.iter())
+      .filter(|l| matches!(&l.teacher, Some(x) if x == name))
+      .for_each(|l| res.push_str(&format_lesson(l)));
 
-    self.groups.iter().for_each(|g| {
-      g.lessons
-        .iter()
-        .filter(eq)
-        .for_each(|l| res.push_str(&format_lesson(l)))
-    });
     res
   }
 }
