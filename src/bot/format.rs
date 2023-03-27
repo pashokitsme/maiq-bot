@@ -12,6 +12,7 @@ use crate::error::{BotError, ReadableError};
 
 pub trait SnapshotFormatter {
   fn format_group(&self, name: &str) -> Result<String, String>;
+  fn format_teacher(&self, teacher: &str) -> String;
 }
 
 #[async_trait]
@@ -29,6 +30,26 @@ impl SnapshotFormatter for Snapshot {
       Some(group) => Ok(format_group(group, &self.uid, self.date)),
       None => Err(format!("Нет расписания для группы <b>{}</b> [<code>{}</code>]", name, self.uid)),
     }
+  }
+
+  fn format_teacher(&self, name: &str) -> String {
+    let mut res = format!(
+      "{} <b>{}</b> ({}) для {}:\n\n",
+      random_emoji(),
+      self.date.date_naive().weekday_str_basic(),
+      self.date.format("%d.%m.%Y"),
+      name
+    );
+
+    let eq = |l: &&Lesson| l.teacher.is_some() && l.teacher.as_ref().unwrap().eq(name);
+
+    self.groups.iter().for_each(|g| {
+      g.lessons
+        .iter()
+        .filter(eq)
+        .for_each(|l| res.push_str(&format_lesson(l)))
+    });
+    res
   }
 }
 
