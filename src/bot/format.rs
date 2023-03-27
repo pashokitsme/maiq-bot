@@ -42,12 +42,14 @@ impl SnapshotFormatter for Snapshot {
       self.uid
     );
 
-    self
-      .groups
-      .iter()
-      .flat_map(|g| g.lessons.iter())
-      .filter(|l| matches!(&l.teacher, Some(x) if x == name))
-      .for_each(|l| res.push_str(&format_lesson(l)));
+    let push = |(group, lessons): (&String, &Vec<Lesson>)| {
+      lessons
+        .iter()
+        .filter(|l| matches!(&l.teacher, Some(x) if x == name))
+        .for_each(|l| res.push_str(&format!("<b>{}</b> · {}", group, format_lesson(l))))
+    };
+
+    self.groups.iter().map(|g| (&g.name, &g.lessons)).for_each(push);
 
     res
   }
