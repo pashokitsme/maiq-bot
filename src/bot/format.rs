@@ -34,11 +34,12 @@ impl SnapshotFormatter for Snapshot {
 
   fn format_teacher(&self, name: &str) -> String {
     let mut res = format!(
-      "{} <b>{}</b> ({}) для {}\n\n",
+      "{} <b>{}</b> ({}) для <b>{}</b> [<code>{}</code>]\n\n",
       random_emoji(),
       self.date.date_naive().weekday_str_basic(),
       self.date.format("%d.%m.%Y"),
-      name
+      name,
+      self.uid
     );
 
     let eq = |l: &&Lesson| l.teacher.is_some() && l.teacher.as_ref().unwrap().eq(name);
