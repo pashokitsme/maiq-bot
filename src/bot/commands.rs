@@ -29,22 +29,22 @@ pub enum Command {
   #[command(description = "Стандартное расписание на завтра")]
   DefaultNext,
 
-  #[command(description = "123")]
+  #[command(description = "Расписание на сегодня")]
   TeacherToday,
 
-  #[command(description = "123")]
+  #[command(description = "Расписание на завтра")]
   TeacherNext,
-  
+
   #[command(description = "Получить расписание по дате")]
   Date(String),
-  
+
   #[command(description = "Включить/выключить уведомления")]
   ToggleNotifications,
-  
+
   #[command(description = "[группа] - Изменить группу")]
   SetGroup(String),
-  
-  #[command(description = "123")]
+
+  #[command(description = "Установить имя")]
   SetTeacher(String),
 
   #[command(description = "Старт")]
@@ -72,7 +72,7 @@ impl Dispatch for Command {
       Command::Date(date) => ctx.reply_dated_snapshot(date).await,
       Command::TeacherToday => ctx.reply_teacher_timetable(Fetch::Today).await,
       Command::TeacherNext => ctx.reply_teacher_timetable(Fetch::Next).await,
-      Command::SetTeacher(ref name) => ctx.set_teacher(name).await
+      Command::SetTeacher(ref name) => ctx.set_teacher(name).await,
     };
 
     if let Err(ref err) = res {

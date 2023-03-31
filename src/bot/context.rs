@@ -75,4 +75,20 @@ impl Context {
       .await?;
     Ok(())
   }
+
+  pub async fn set_teacher(&self, name: &str) -> BotResult {
+    let mut user = self.mongo.get_or_new(self.user_id()).await?;
+    match name {
+      "" => {
+        user.teacher = None;
+        self.reply("Имя удалено").await?
+      }
+      x => {
+        user.teacher = Some(x.into());
+        self.reply(format!("Имя: {}", name)).await?;
+      }
+    };
+    self.mongo.update(&user).await?;
+    Ok(())
+  }
 }

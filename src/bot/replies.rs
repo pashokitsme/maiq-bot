@@ -152,16 +152,6 @@ impl Context {
     self.reply(snapshot.format_teacher(&name.unwrap())).await
   }
 
-  pub async fn set_teacher(&self, name: &str) -> BotResult {
-    let mut user = self.mongo.get_or_new(self.user_id()).await?;
-    match name {
-      "" => user.teacher = None,
-      x => user.teacher = Some(x.into()),
-    };
-    self.mongo.update(&user).await?;
-    self.reply(format!("Имя: {}", name)).await
-  }
-
   pub async fn dev_reply_user_list(&self) -> BotResult {
     let users = self.mongo.fetch_all().await?;
     let format = |u: &Settings| -> String {
