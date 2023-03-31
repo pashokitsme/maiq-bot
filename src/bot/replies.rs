@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use maiq_api_wrapper::api;
+use maiq_api_wrapper as api;
 use maiq_shared::{utils::time::now, Fetch};
 use teloxide::{
   payloads::SendMessageSetters,
@@ -37,6 +37,7 @@ impl Context {
 Желаешь помочь? В /about есть ссылка на гитхаб.
 
 По всем вопросам/багам/предложениям пиши <a href="https://t.me/pashokitsme">ему</a>.
+Чтобы следить за обновлениями, подписывайся на <a href="https://github.com/pashokitsme">гитхаб</a>.
 
 Как пользоваться ботом, информация о нём, ссылки - всё так же: /about"#
       ))
@@ -50,7 +51,9 @@ impl Context {
           self.chat_id(),
           r#"<b>Информация</b>
   
-  · Код проекта лежит на <a href="https://github.com/pashokitsme">гитхабе</a> и разделён на 3 репозитория. Жду 🌟 и/или пулл реквесты 
+  · Код проекта лежит на <a href="https://github.com/pashokitsme">гитхабе</a> и разделён на 3 репозитория. Жду 🌟 и/или пулл реквесты
+
+  · Чтобы следить за обновлениями, подписывайся на <a href="https://github.com/pashokitsme">гитхаб</a>.
 
   · Обращайте внимание на дату расписания - если она неправильная, то скорее всего и само расписание спарсилось с ошибками.
 
@@ -128,7 +131,7 @@ impl Context {
 
     let group = match self.mongo.get_or_new(self.user_id()).await?.group {
       Some(g) => g,
-      None => return self.reply("Ты не указал группу").await.map(|_| ()),
+      None => return self.reply("Группа не указана").await.map(|_| ()),
     };
 
     let date =
@@ -138,9 +141,26 @@ impl Context {
       Ok(r) => r,
       Err(r) => r,
     };
-    self.reply(r).await?;
+    self.reply(r).await
+  }
 
-    Ok(())
+  pub async fn reply_teacher_timetable(&self, fetch: Fetch) -> BotResult {
+    let name = self.mongo.get_or_new(self.user_id()).await?.teacher;
+    if name.is_none() {
+      return self.reply("Имя не указано").await;
+    }
+    let snapshot = api::latest(fetch).await?;
+    self.reply(snapshot.format_teacher(&name.unwrap())).await
+  }
+
+  pub async fn set_teacher(&self, name: &str) -> BotResult {
+    let mut user = self.mongo.get_or_new(self.user_id()).await?;
+    match name {
+      "" => user.teacher = None,
+      x => user.teacher = Some(x.into()),
+    };
+    self.mongo.update(&user).await?;
+    self.reply(format!("Имя: {}", name)).await
   }
 
   pub async fn dev_reply_user_list(&self) -> BotResult {
@@ -163,8 +183,7 @@ impl Context {
 
     let body = format!("Всего: <b>{}</b>\n\n{}", users.len(), users.iter().map(format).collect::<String>());
 
-    self.reply(body).await?;
-    Ok(())
+    self.reply(body).await
   }
 
   pub async fn dev_send_broadcast_agreement(&self, body: &String) -> BotResult {

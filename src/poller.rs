@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveTime, Utc};
-use maiq_api_wrapper::{api, polling::SnapshotChanges};
-use maiq_shared::utils::time::*;
+use maiq_api_wrapper as api;
+use maiq_shared::{utils::time::*, Fetch};
 use teloxide::Bot;
 use tokio::time::sleep;
 
@@ -35,31 +35,21 @@ impl Poller {
         }
       };
 
-      self.notify_if_need(&poll.today).await;
-      self.notify_if_need(&poll.next).await;
+      self.notify_if_need(poll.today_changes, Fetch::Today).await;
+      self.notify_if_need(poll.next_changes, Fetch::Next).await;
       self.wait(poll.next_update).await;
     }
   }
 
-  async fn notify_if_need(&self, new: &SnapshotChanges) {
-    if new.groups.is_empty() || new.uid.is_none() {
+  async fn notify_if_need(&self, changes: Vec<String>, fetch: Fetch) {
+    if changes.is_empty() {
       return;
     }
 
-    self.notify(new.uid.as_ref().unwrap(), new).await
-  }
-
-  async fn notify(&self, uid: &str, changes: &SnapshotChanges) {
-    let snapshot = match api::snapshot(uid).await {
-      Ok(s) => s,
-      Err(err) => {
-        error!("Snapshot {} returned with error: {}: {}", uid, err.cause, err.desc);
-        return;
+    if let Ok(snapshot) = api::latest(fetch).await {
+      if let Err(err) = notify_update(&self.bot, &self.mongo, snapshot, changes).await {
+        error!("An error occured while notifying users: {}", err);
       }
-    };
-
-    if let Err(err) = notify_update(&self.bot, &self.mongo, changes, snapshot).await {
-      error!("An error occured while notifying users: {}", err);
     }
   }
 

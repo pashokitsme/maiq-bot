@@ -1,6 +1,7 @@
+use api::ApiError;
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc, Weekday};
-use maiq_api_wrapper::api::{self, ApiError};
+use maiq_api_wrapper as api;
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
   utils::time::now_date,
@@ -11,6 +12,7 @@ use crate::error::{BotError, ReadableError};
 
 pub trait SnapshotFormatter {
   fn format_group(&self, name: &str) -> Result<String, String>;
+  fn format_teacher(&self, teacher: &str) -> String;
 }
 
 #[async_trait]
@@ -28,6 +30,28 @@ impl SnapshotFormatter for Snapshot {
       Some(group) => Ok(format_group(group, &self.uid, self.date)),
       None => Err(format!("Нет расписания для группы <b>{}</b> [<code>{}</code>]", name, self.uid)),
     }
+  }
+
+  fn format_teacher(&self, name: &str) -> String {
+    let mut res = format!(
+      "{} <b>{}</b> ({}) для <b>{}</b> [<code>{}</code>]\n\n",
+      random_emoji(),
+      self.date.date_naive().weekday_str_basic(),
+      self.date.format("%d.%m.%Y"),
+      name,
+      self.uid
+    );
+
+    let push = |(group, lessons): (&String, &Vec<Lesson>)| {
+      lessons
+        .iter()
+        .filter(|l| matches!(&l.teacher, Some(x) if x == name))
+        .for_each(|l| res.push_str(&format!("<b>{}</b> · {}", group, format_lesson(l))))
+    };
+
+    self.groups.iter().map(|g| (&g.name, &g.lessons)).for_each(push);
+
+    res
   }
 }
 
@@ -147,7 +171,6 @@ fn format_lesson(lesson: &Lesson) -> String {
   };
 
   res = format!("{}<b>· {}</b>\n", res, lesson.name);
-
   res
 }
 

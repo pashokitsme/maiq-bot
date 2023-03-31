@@ -29,14 +29,23 @@ pub enum Command {
   #[command(description = "Стандартное расписание на завтра")]
   DefaultNext,
 
+  #[command(description = "123")]
+  TeacherToday,
+
+  #[command(description = "123")]
+  TeacherNext,
+  
   #[command(description = "Получить расписание по дате")]
   Date(String),
-
+  
   #[command(description = "Включить/выключить уведомления")]
   ToggleNotifications,
-
+  
   #[command(description = "[группа] - Изменить группу")]
   SetGroup(String),
+  
+  #[command(description = "123")]
+  SetTeacher(String),
 
   #[command(description = "Старт")]
   Start,
@@ -61,6 +70,9 @@ impl Dispatch for Command {
       Command::DefaultToday => ctx.reply_default(now().date_naive()).await,
       Command::DefaultNext => ctx.reply_default(crate::bot::get_next_day()).await,
       Command::Date(date) => ctx.reply_dated_snapshot(date).await,
+      Command::TeacherToday => ctx.reply_teacher_timetable(Fetch::Today).await,
+      Command::TeacherNext => ctx.reply_teacher_timetable(Fetch::Next).await,
+      Command::SetTeacher(ref name) => ctx.set_teacher(name).await
     };
 
     if let Err(ref err) = res {

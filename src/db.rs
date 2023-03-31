@@ -20,6 +20,7 @@ pub struct Settings {
   pub group: Option<String>,
   pub is_notifications_enabled: bool,
   pub joined: DateTime,
+  pub teacher: Option<String>,
 }
 
 #[derive(Debug)]
@@ -36,7 +37,7 @@ impl Notifiable {
 
 impl Settings {
   pub fn new(id: UserId) -> Self {
-    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(now()), group: None }
+    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(now()), group: None, teacher: None }
   }
 }
 

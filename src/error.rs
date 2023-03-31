@@ -1,4 +1,4 @@
-use maiq_api_wrapper::api;
+use maiq_api_wrapper as api;
 use teloxide::dispatching::dialogue::InMemStorageError;
 use thiserror::Error;
 
