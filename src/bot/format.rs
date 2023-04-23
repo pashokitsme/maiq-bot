@@ -5,7 +5,7 @@ use maiq_api_wrapper as api;
 use maiq_shared::{
   default::{DefaultGroup, DefaultLesson},
   utils::time::now_date,
-  Group, Lesson, Snapshot,
+  Group, Lesson, Num, Snapshot,
 };
 
 use crate::error::{BotError, ReadableError};
@@ -160,18 +160,20 @@ fn format_group(group: &Group, snapshot_uid: &String, date: DateTime<Utc>) -> St
 }
 
 fn format_lesson(lesson: &Lesson) -> String {
-  let mut res = match lesson.classroom.as_ref() {
-    Some(classroom) => format!("<b>#{}</b> {} ", lesson.num, classroom),
-    None => format!("<b>#{}</b> ", lesson.num),
+  let mut res = String::new();
+  if let Num::Actual(ref num) = lesson.num {
+    res.push_str(&format!("<b>#{}</b>", num))
+  }
+
+  if let Some(ref classroom) = lesson.classroom {
+    res.push_str(&format!(" {}", classroom))
+  }
+
+  if let Some(ref sub) = lesson.subgroup {
+    res.push_str(&format!("· п/г {}", sub))
   };
 
-  res = match lesson.subgroup {
-    Some(sub) => format!("{}· п/г {} ", res, sub),
-    None => res,
-  };
-
-  res = format!("{}<b>· {}</b>\n", res, lesson.name);
-  res
+  format!("{} <b>· {}</b>\n", res, lesson.name)
 }
 
 const EMOJIES: [&str; 21] =
