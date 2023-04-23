@@ -23,6 +23,7 @@ pub struct Callback<T: Into<String>> {
 pub enum CallbackKind {
   Ok,
   Del,
+  SelectGroup(String),
   SendBroadcast,
   Unknown,
 }
@@ -43,6 +44,7 @@ impl Dispatch for CallbackKind {
     match self {
       K::Ok => ok(bot, q).await,
       K::Del => delete_message(bot, q).await,
+      K::SelectGroup(group) => select_group(bot, q, mongo, group).await,
       K::SendBroadcast => send_broadcast(bot, q, mongo).await,
       K::Unknown => {
         error!("Unknown callback id {} received", q.id);

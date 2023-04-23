@@ -41,8 +41,8 @@ pub enum Command {
   #[command(description = "Включить/выключить уведомления")]
   ToggleNotifications,
 
-  #[command(description = "[группа] - Изменить группу")]
-  SetGroup(String),
+  #[command(description = " Изменить группу")]
+  SelectGroup,
 
   #[command(description = "Установить имя")]
   SetTeacher(String),
@@ -64,7 +64,7 @@ impl Dispatch for Command {
       Command::About => ctx.reply_about().await,
       Command::Links => ctx.reply_links().await,
       Command::ToggleNotifications => ctx.toggle_notifications().await,
-      Command::SetGroup(ref group) => ctx.set_group(group).await,
+      Command::SelectGroup => ctx.reply_select_group().await,
       Command::Today => ctx.reply_timetable(Fetch::Today).await,
       Command::Next => ctx.reply_timetable(Fetch::Next).await,
       Command::DefaultToday => ctx.reply_default(now().date_naive()).await,

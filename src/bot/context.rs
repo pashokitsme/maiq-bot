@@ -61,21 +61,6 @@ impl Context {
     Ok(())
   }
 
-  pub async fn set_group(&self, group: &String) -> BotResult {
-    if group.is_empty() || group.len() > 10 {
-      return Err(BotError::invalid_command("/set_group", "/set_group [группа: длина &lt; 10]", "/set_group Ир3-21"));
-    }
-
-    let mut user = self.mongo.get_or_new(self.user_id()).await?;
-    user.group = Some(group.clone());
-    user.is_notifications_enabled = true;
-    self.mongo.update(&user).await?;
-    self
-      .reply(format!("Теперь твоя группа: <code>{}</code>", user.group.unwrap()))
-      .await?;
-    Ok(())
-  }
-
   pub async fn set_teacher(&self, name: &str) -> BotResult {
     let mut user = self.mongo.get_or_new(self.user_id()).await?;
     match name {
