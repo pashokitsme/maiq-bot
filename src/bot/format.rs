@@ -170,7 +170,7 @@ fn format_lesson(lesson: &Lesson) -> String {
   }
 
   if let Some(ref sub) = lesson.subgroup {
-    res.push_str(&format!("· п/г {}", sub))
+    res.push_str(&format!(" · п/г <b>{}</b<", sub))
   };
 
   format!("{} <b>· {}</b>\n", res, lesson.name)
