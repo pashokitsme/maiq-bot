@@ -73,11 +73,15 @@ fn dispatch_scheme() -> UpdateHandler<BotError> {
         .filter_command::<DevCommand>()
         .filter(move |msg: Message| msg.from().unwrap().id == *DEV_ID)
         .endpoint(dispatch::<DevCommand, Message>),
-    );
+    )
+    .endpoint(unhandled_message);
 
   let callback_handler = Update::filter_callback_query().endpoint(dispatch_query);
 
-  dp::entry().branch(cmds_handler).branch(callback_handler)
+  dp::entry()
+    .branch(cmds_handler)
+    .branch(callback_handler)
+    .endpoint(unhandled_update)
 }
 
 async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool) -> BotResult {
@@ -89,6 +93,32 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool) -> Bot
 
   info!("Callback {:?} from {}", kind, query.from.full_name());
   dispatch(kind, bot, query, mongo).await
+}
+
+async fn unhandled_message(msg: Message) -> BotResult {
+  let user = msg.from().unwrap();
+  warn!(
+    "Unhandled message from: {name} [@{username} #{id}] {chat_kind:?}]\nKind: {kind:?}",
+    name = user.full_name(),
+    username = user.username.as_deref().unwrap_or("?"),
+    id = user.id.0,
+    chat_kind = msg.chat.kind,
+    kind = msg.kind
+  );
+  Ok(())
+}
+
+async fn unhandled_update(update: Update) -> BotResult {
+  let user = update.user().unwrap();
+  warn!(
+    "Unhandled update #{update_id} from {name} [@{username} #{id}]",
+    update_id = update.id,
+    name = user.full_name(),
+    username = user.username.as_deref().unwrap_or("?"),
+    id = user.id.0
+  );
+
+  Ok(())
 }
 
 async fn dispatch<T: Dispatch<Kind = K>, K>(dispatchable: T, bot: Bot, kind: K, db: MongoPool) -> BotResult {
