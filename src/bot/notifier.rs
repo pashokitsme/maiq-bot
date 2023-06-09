@@ -36,6 +36,7 @@ pub async fn send_to_all(bot: &Bot, msg: &str, ids: &[i64]) {
       bot
         .send_message(ChatId(id), msg)
         .parse_mode(ParseMode::Html)
+        .disable_web_page_preview(true)
         .into_future(),
     );
   }
