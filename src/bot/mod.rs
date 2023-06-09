@@ -34,14 +34,6 @@ lazy_static! {
 }
 
 pub type BotResult = Result<(), BotError>;
-// pub type GlobalStateStorage = InMemStorage<State>;
-// pub type GlobalState = Dialogue<State, GlobalStateStorage>;
-
-#[derive(Clone, Default)]
-pub enum State {
-  #[default]
-  None,
-}
 
 #[async_trait]
 trait Dispatch {

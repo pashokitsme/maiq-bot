@@ -7,7 +7,7 @@ use mongodb::{
   Collection,
 };
 use serde::{Deserialize, Serialize};
-use teloxide::types::UserId;
+use teloxide::types::ChatId;
 
 use crate::{env, error::BotError};
 
@@ -26,18 +26,18 @@ pub struct Settings {
 #[derive(Debug)]
 pub struct Notifiable {
   pub group: String,
-  pub user_ids: Vec<i64>,
+  pub ids: Vec<i64>,
 }
 
 impl Notifiable {
   pub fn new(group: String, id: i64) -> Self {
-    Notifiable { group, user_ids: vec![id] }
+    Notifiable { group, ids: vec![id] }
   }
 }
 
 impl Settings {
-  pub fn new(id: UserId) -> Self {
-    Self { id: id.0 as i64, is_notifications_enabled: false, joined: DateTime::from_chrono(now()), group: None, teacher: None }
+  pub fn new(id: ChatId) -> Self {
+    Self { id: id.0, is_notifications_enabled: false, joined: DateTime::from_chrono(now()), group: None, teacher: None }
   }
 }
 
@@ -67,8 +67,8 @@ impl MongoPool {
     Ok(Self { mongo, settings })
   }
 
-  pub async fn get_or_new(&self, id: UserId) -> Result<Settings, MongoError> {
-    if let Some(settings) = self.settings.find_one(doc! { "id": id.0 as i64 }, None).await? {
+  pub async fn get_or_new(&self, id: ChatId) -> Result<Settings, MongoError> {
+    if let Some(settings) = self.settings.find_one(doc! { "id": id.0 }, None).await? {
       return Ok(settings);
     }
 
@@ -83,13 +83,6 @@ impl MongoPool {
       .settings
       .find_one_and_replace(doc! { "id": new_settings.id }, new_settings, None)
       .await
-  }
-
-  #[allow(dead_code)] // todo: disallow
-  pub async fn delete(&self, id: UserId) -> Result<(), MongoError> {
-    self.settings.delete_one(doc! { "id": id.0 as i64}, None).await?;
-    info!("Deleted user-id {}", id.0);
-    Ok(())
   }
 
   pub async fn notifiables(&self) -> Result<Vec<Notifiable>, BotError> {
@@ -112,7 +105,7 @@ impl MongoPool {
       let group = group.unwrap();
 
       match notifies.iter_mut().find(|n| n.group == group) {
-        Some(n) => n.user_ids.push(id),
+        Some(n) => n.ids.push(id),
         None => notifies.push(Notifiable::new(group.to_string(), id)),
       }
     }

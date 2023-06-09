@@ -23,7 +23,7 @@ pub async fn notify_update(bot: &Bot, mongo: &MongoPool, snapshot: Snapshot, cha
       .format_or_default(&notifiable.group, snapshot.date.date_naive())
       .await;
 
-    send_to_all(bot, &body, notifiable.user_ids.as_slice()).await;
+    send_to_all(bot, &body, notifiable.ids.as_slice()).await;
   }
   Ok(())
 }

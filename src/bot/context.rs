@@ -2,7 +2,7 @@ use std::ops::Deref;
 use teloxide::{
   payloads::{SendMessage, SendMessageSetters},
   requests::{JsonRequest, Requester},
-  types::{ChatId, Message, ParseMode, UserId},
+  types::{ChatId, Message, ParseMode},
   Bot,
 };
 
@@ -31,10 +31,6 @@ impl Context {
     self.msg.chat.id
   }
 
-  pub fn user_id(&self) -> UserId {
-    self.msg.from().map(|f| f.id).unwrap_or(UserId(0))
-  }
-
   pub async fn reply<T: Into<String>>(&self, text: T) -> Result<(), BotError> {
     self
       .bot
@@ -54,7 +50,7 @@ impl Context {
   }
 
   pub async fn toggle_notifications(&self) -> BotResult {
-    let mut user = self.mongo.get_or_new(self.user_id()).await?;
+    let mut user = self.mongo.get_or_new(self.chat_id()).await?;
     user.is_notifications_enabled = !user.is_notifications_enabled;
     self.mongo.update(&user).await?;
     self.reply(format!("{}", user.is_notifications_enabled)).await?;
@@ -62,7 +58,7 @@ impl Context {
   }
 
   pub async fn set_teacher(&self, name: &str) -> BotResult {
-    let mut user = self.mongo.get_or_new(self.user_id()).await?;
+    let mut user = self.mongo.get_or_new(self.chat_id()).await?;
     match name {
       "" => {
         user.teacher = None;

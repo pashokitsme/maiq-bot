@@ -28,7 +28,7 @@ macro_rules! url_buttons {
 
 impl Context {
   pub async fn start(&self) -> BotResult {
-    self.mongo.get_or_new(self.user_id()).await?;
+    self.mongo.get_or_new(self.chat_id()).await?;
     let username = &self.msg.from().unwrap().first_name;
     self
       .reply(format!(
@@ -109,7 +109,7 @@ impl Context {
   }
 
   pub async fn reply_timetable(&self, fetch: Fetch) -> BotResult {
-    let group = self.mongo.get_or_new(self.user_id()).await?.group;
+    let group = self.mongo.get_or_new(self.chat_id()).await?.group;
 
     let group = match group {
       Some(g) => g,
@@ -128,7 +128,7 @@ impl Context {
   }
 
   pub async fn reply_default(&self, date: NaiveDate) -> BotResult {
-    match self.mongo.get_or_new(self.user_id()).await?.group {
+    match self.mongo.get_or_new(self.chat_id()).await?.group {
       Some(g) => self.reply(api::default(&g, date.weekday()).await.format(date)).await,
       None => self.reply("Ты не указал группу").await.map(|_| ()),
     }
@@ -146,7 +146,7 @@ impl Context {
       NaiveDate::from_ymd_opt(y, m, d).ok_or(())
     }
 
-    let group = match self.mongo.get_or_new(self.user_id()).await?.group {
+    let group = match self.mongo.get_or_new(self.chat_id()).await?.group {
       Some(g) => g,
       None => return self.reply("Группа не указана").await.map(|_| ()),
     };
@@ -162,7 +162,7 @@ impl Context {
   }
 
   pub async fn reply_teacher_timetable(&self, fetch: Fetch) -> BotResult {
-    let name = self.mongo.get_or_new(self.user_id()).await?.teacher;
+    let name = self.mongo.get_or_new(self.chat_id()).await?.teacher;
     if name.is_none() {
       return self.reply("Имя не указано").await;
     }
@@ -216,7 +216,7 @@ impl Context {
     let buttons = vec![vec![Callback::button("X", CallbackKind::Del), Callback::button("OK", CallbackKind::SendBroadcast)]];
     let reply_markup = InlineKeyboardMarkup::new(buttons);
     self
-      .send_message(self.user_id(), body)
+      .send_message(self.chat_id(), body)
       .reply_markup(reply_markup)
       .await?;
 

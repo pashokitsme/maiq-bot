@@ -29,11 +29,11 @@ pub(super) async fn send_broadcast(bot: Bot, q: CallbackQuery, mongo: MongoPool)
 }
 
 pub(super) async fn select_group(bot: Bot, q: CallbackQuery, mongo: MongoPool, group_name: &str) -> BotResult {
-  let mut user = mongo.get_or_new(q.from.id).await?;
+  let message = q.message.unwrap();
+  let mut user = mongo.get_or_new(message.chat.id).await?;
   user.group = Some(group_name.into());
   user.is_notifications_enabled = true;
   mongo.update(&user).await?;
-  let message = q.message.unwrap();
   bot
     .edit_message_text(message.chat.id, message.id, format!("Теперь твоя группа: <code>{}</code>", user.group.unwrap()))
     .parse_mode(teloxide::types::ParseMode::Html)
