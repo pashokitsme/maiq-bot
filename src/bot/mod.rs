@@ -96,27 +96,29 @@ async fn dispatch_query(bot: Bot, query: CallbackQuery, mongo: MongoPool) -> Bot
 }
 
 async fn unhandled_message(msg: Message) -> BotResult {
-  let user = msg.from().unwrap();
-  warn!(
-    "Unhandled message from: {name} [@{username} #{id}] {chat_kind:?}]\nKind: {kind:?}",
-    name = user.full_name(),
-    username = user.username.as_deref().unwrap_or("?"),
-    id = user.id.0,
-    chat_kind = msg.chat.kind,
-    kind = msg.kind
-  );
+  if let Some(user) = msg.from() {
+    warn!(
+      "Unhandled message from: {name} [@{username} #{id}] {chat_kind:?}]\nKind: {kind:?}",
+      name = user.full_name(),
+      username = user.username.as_deref().unwrap_or("?"),
+      id = user.id.0,
+      chat_kind = msg.chat.kind,
+      kind = msg.kind
+    );
+  }
   Ok(())
 }
 
 async fn unhandled_update(update: Update) -> BotResult {
-  let user = update.user().unwrap();
-  warn!(
-    "Unhandled update #{update_id} from {name} [@{username} #{id}]",
-    update_id = update.id,
-    name = user.full_name(),
-    username = user.username.as_deref().unwrap_or("?"),
-    id = user.id.0
-  );
+  if let Some(user) = update.user() {
+    warn!(
+      "Unhandled update #{update_id} from {name} [@{username} #{id}]",
+      update_id = update.id,
+      name = user.full_name(),
+      username = user.username.as_deref().unwrap_or("?"),
+      id = user.id.0
+    );
+  }
 
   Ok(())
 }
